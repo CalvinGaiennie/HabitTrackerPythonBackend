@@ -1,0 +1,2 @@
+# Data Policy
+This project uses the Plaid API to access financial data and is intended only for my personal use with my own accounts. Data is stored only in a Render-hosted PostgreSQL database with encryption at rest, and all communication occurs over TLS 1.2+. Secrets (API keys, tokens, passwords) are kept in environment variables and never in source code. Data is retained only as needed for functionality, may be deleted on request, is never sold or shared with third parties, and is accessible only to the developer (me).

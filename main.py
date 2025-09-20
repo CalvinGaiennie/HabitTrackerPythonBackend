@@ -24,7 +24,7 @@ app.add_middleware(
 def root():
     return {"message": "Hello World"}
 
-    def init_db():
+def init_db():
     conn = psycopg2.connect(os.environ["DATABASE_URL"])
     cur = conn.cursor()
 

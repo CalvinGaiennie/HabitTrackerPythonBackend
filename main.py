@@ -29,12 +29,14 @@ def init_db():
     cur = conn.cursor()
 
     with open("dbschema.sql", "r") as f:
-        schema_sql = f.read()
-        cur.execute(schema_sql)
+        cur.execute(f.read())
 
     conn.commit()
+
+    # Check if "users" table exists
+    cur.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='public';")
+    tables = cur.fetchall()
+    print("Tables in database:", tables)
+
     cur.close()
     conn.close()
-
-if __name__ == "__main__":
-    init_db()

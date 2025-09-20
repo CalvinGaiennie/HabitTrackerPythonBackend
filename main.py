@@ -1,14 +1,14 @@
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
-from plaid.api import plaid_api
-from plaid import Configuration, Environment, ApiClient
-from plaid.model.link_token_create_request import LinkTokenCreateRequest
-from plaid.model.link_token_create_request_user import LinkTokenCreateRequestUser
-from plaid.model.products import Products
-from plaid.model.country_code import CountryCode
-from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchangeRequest
-from plaid.model.transactions_get_request import TransactionsGetRequest
-from plaid.exceptions import ApiException
+# from fastapi import FastAPI, Request
+# from fastapi.middleware.cors import CORSMiddleware
+# from plaid.api import plaid_api
+# from plaid import Configuration, Environment, ApiClient
+# from plaid.model.link_token_create_request import LinkTokenCreateRequest
+# from plaid.model.link_token_create_request_user import LinkTokenCreateRequestUser
+# from plaid.model.products import Products
+# from plaid.model.country_code import CountryCode
+# from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchangeRequest
+# from plaid.model.transactions_get_request import TransactionsGetRequest
+# from plaid.exceptions import ApiException
 from datetime import date, timedelta
 import os
 from dotenv import load_dotenv
@@ -27,15 +27,30 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+def init_db():
+    conn = psycopg2.connect(os.environ["DATABASE_URL"])
+    cur = conn.cursor()
+
+    with open("dbschema.sql", "r") as f:
+        schema_sql = f.read()
+        cur.execute(schema_sql)
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+if __name__ == "__main__":
+    init_db()
+
 # Plaid config
-configuration = Configuration(
-    # host=Environment.Production, 
-    host=Environment.Sandbox,
-    api_key={
-        "clientId": os.getenv("PLAID_CLIENT_ID"),
-        "secret": os.getenv("PLAID_SECRET"),
-    }
-)
+# configuration = Configuration(
+#     # host=Environment.Production, 
+#     host=Environment.Sandbox,
+#     api_key={
+#         "clientId": os.getenv("PLAID_CLIENT_ID"),
+#         "secret": os.getenv("PLAID_SECRET"),
+#     }
+# )
 # api_client = ApiClient(configuration)
 # client = plaid_api.PlaidApi(api_client)
 

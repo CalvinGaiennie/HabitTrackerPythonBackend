@@ -28,13 +28,13 @@ def init_db():
 
     # Run schema file (safe if it uses CREATE TABLE IF NOT EXISTS)
     try:
-        with open("DBschema.sql", "r") as f:
+        with open("DBSchema.sql", "r") as f:
             schema_sql = f.read()
             cur.execute(schema_sql)
         conn.commit()
-        print("✅ DBschema.sql executed")
+        print("✅ DBSchema.sql executed")
     except Exception as e:
-        print("⚠️ Error running DBschema.sql:", e)
+        print("⚠️ Error running DBSchema.sql:", e)
 
     # Log all existing tables
     cur.execute("""

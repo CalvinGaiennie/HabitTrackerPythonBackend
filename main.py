@@ -4,7 +4,7 @@ import os
 import psycopg2
 from dotenv import load_dotenv
 import time
-import FastAPI
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from db.session import SessionLocal
 from . import models, schemas
+from datetime import date
 
 router = APIRouter(prefix="/daily_logs", tags=["daily_logs"])
 
@@ -13,23 +14,30 @@ def get_db():
         db.close()
 
 @router.post("/", response_model=schemas.DailyLogOut)
-def create_daily_log(daily_log: schemas.DailyLogCreate, db: Session = Depends(get_db)): 
-    db_daily_log = models.Daily_Logs(**daily_log.model_dump(), user_id=1)
-    db.add(db_daily_log)
-    db.commit()
-    db.refresh(db_daily_log)
-    return db_daily_log
+def create_or_update_log(log: schemas.DailyLogCreate, db: Session = Depends(get_db)):
+    db_log = (
+        db.query(models.Daily_Logs)
+        .filter(models.Daily_Logs.metric_id == log.metric_id)
+        .filter(models.Daily_Logs.log_date == log.log_date)
+        .first()
+    )
 
-@router.get("/", response_model=list[schemas.DailyLogOut])
-def get_daily_logs(db: Session = Depends(get_db)):
-    return db.query(models.Daily_Logs).all()
+    if db_log:
+        for field, value in log.dict(exclude_unset=True).items():
+            setattr(db_log, field, value)
 
-@router.delete("/{daily_log_id}")
-def deactivate_daily_log(daily_log_id: int, db: Session = Depends(get_db)):
-    daily_log = db.query(models.Daily_Logs).get(daily_log_id)
-    if not daily_log:
-        raise HTTPException(status_code=404, detail="Daily Log not found")
-    # Note: The model doesn't have an 'active' field, so we'll just delete it
-    db.delete(daily_log)
+    else: 
+        db_log = models.Daily_Logs(**log.dict())
+        db.add(db_log)
+
     db.commit()
-    return { "message": "Daily Log deleted"}
+    db.refresh(db_log)
+    return db_log
+
+@router.get("/")
+def get_daily_logs(log_date: date, db: Session = Depends(get_db)):
+    return (
+        db.query(models.Daily_Logs)
+        .filter(models.Daily_Logs.log_date == log_date)
+        .all()
+    )

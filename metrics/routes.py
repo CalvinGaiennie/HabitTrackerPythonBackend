@@ -25,6 +25,10 @@ def create_metric(metric: schemas.MetricCreate, db: Session = Depends(get_db)):
 def get_metrics(db: Session = Depends(get_db)):
     return db.query(models.Metric).filter(models.Metric.active == True).all()
 
+@router.get("/active", response_model=list[schemas.MetricOut])
+def get_active_metrics(db: Session = Depends(get_db)):
+    return db.query(models.Metric).filter(models.Metric.active.is_(True)).all()
+
 @router.delete("/{metric_id}")
 def deactivate_metric(metric_id: int, db: Session = Depends(get_db)):
     metric = db.query(models.Metric).get(metric_id)

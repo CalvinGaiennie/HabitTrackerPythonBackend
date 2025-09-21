@@ -2,6 +2,7 @@ from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from datetime import date
 from decimal import Decimal
+from datetime import datetime
 
 class DailyLogBase(BaseModel):
     metric_id: int
@@ -13,7 +14,7 @@ class DailyLogBase(BaseModel):
     note: Optional[str] = None
 
 class DailyLogCreate(DailyLogBase):
-    pass
+    user_id: int
 
 class DailyLogUpdate(DailyLogBase):
     pass
@@ -21,7 +22,8 @@ class DailyLogUpdate(DailyLogBase):
 class DailyLogOut(DailyLogBase):
     id: int
     user_id: int
-    created_at: Optional[str] = None
+    created_at: datetime
 
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        orm_mode = True
 

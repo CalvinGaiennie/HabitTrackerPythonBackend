@@ -1,14 +1,22 @@
 from fastapi import FastAPI
+from metrics import routes as metrics_routes
+from daily_logs import routes as daily_logs_routes
+from users import models as user_models  # Import to register the model
 from fastapi.middleware.cors import CORSMiddleware
 import os
 import psycopg2
 
 app = FastAPI()
 
-# CORS middleware (update origins for your frontend)
+app.include_router(metrics_routes.router)
+app.include_router(daily_logs_routes.router)
+
+
+# CORS middleware (allows all localhost ports for development)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "https://yourfrontend.netlify.app"],
+    allow_origins=["http://localhost:5173", 
+                   "https://yourfrontend.netlify.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.db.session import SessionLocal
 from . import models, schemas
+from db.session import SessionLocal
+
 
 router = APIRouter(prefix="/metrics", tags=["metrics"])
 
@@ -14,7 +15,7 @@ def get_db():
 
 @router.post("/", response_model=schemas.MetricOut)
 def create_metric(metric: schemas.MetricCreate, db: Session = Depends(get_db)):
-    db_metric = models.Metric(**metric.dict(), user_id=1)  # replace with real user
+    db_metric = models.Metric(**metric.model_dump(), user_id=1)  # replace with real user
     db.add(db_metric)
     db.commit()
     db.refresh(db_metric)

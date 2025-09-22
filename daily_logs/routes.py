@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import joinedload, Session
 from db.session import SessionLocal
 from . import models, schemas
 from datetime import date
@@ -16,9 +16,9 @@ def get_db():
 @router.post("/", response_model=schemas.DailyLogOut)
 def create_or_update_log(log: schemas.DailyLogCreate, db: Session = Depends(get_db)):
     db_log = (
-        db.query(models.Daily_Logs)
-        .filter(models.Daily_Logs.metric_id == log.metric_id)
-        .filter(models.Daily_Logs.log_date == log.log_date)
+        db.query(models.DailyLog)
+        .filter(models.DailyLog.metric_id == log.metric_id)
+        .filter(models.DailyLog.log_date == log.log_date)
         .first()
     )
 
@@ -27,17 +27,18 @@ def create_or_update_log(log: schemas.DailyLogCreate, db: Session = Depends(get_
             setattr(db_log, field, value)
 
     else: 
-        db_log = models.Daily_Logs(**log.dict())
+        db_log = models.DailyLog(**log.dict())
         db.add(db_log)
 
     db.commit()
     db.refresh(db_log)
     return db_log
 
-@router.get("/")
+@router.get("/", response_model=list[schemas.DailyLogOut])
 def get_daily_logs(log_date: date, db: Session = Depends(get_db)):
     return (
-        db.query(models.Daily_Logs)
-        .filter(models.Daily_Logs.log_date == log_date)
+        db.query(models.DailyLog)
+        .options(joinedload(models.DailyLog.metric))
+        .filter(models.DailyLog.log_date == log_date)
         .all()
     )

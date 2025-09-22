@@ -29,11 +29,13 @@ def get_metrics(db: Session = Depends(get_db)):
 def get_active_metrics(db: Session = Depends(get_db)):
     return db.query(models.Metric).filter(models.Metric.active.is_(True)).all()
 
-@router.delete("/{metric_id}")
-def deactivate_metric(metric_id: int, db: Session = Depends(get_db)):
+
+@router.patch("/{metric_id}/activate", response_model=schemas.MetricOut)
+def update_metric_activate(metric_id: int, active: bool, db: Session = Depends(get_db)):
     metric = db.query(models.Metric).get(metric_id)
     if not metric:
         raise HTTPException(status_code=404, detail="Metric not found")
-    metric.active = False
+    metric.active = active
     db.commit()
-    return {"message": "Metric deactivated"}
+    db.refresh(metric)
+    return metric

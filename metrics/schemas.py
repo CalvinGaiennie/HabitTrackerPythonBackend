@@ -16,6 +16,13 @@ class MetricBase(BaseModel):
     notes_on: Optional[bool] = False
     is_required: Optional[bool] = False
 
+class MetricMini(BaseModel):
+    id: int
+    name: str
+    
+    class Config: 
+        from_attributes = True
+
 
 class MetricCreate(MetricBase):
     pass

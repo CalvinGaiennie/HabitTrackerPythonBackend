@@ -3,6 +3,7 @@ from typing import Optional
 from datetime import date
 from decimal import Decimal
 from datetime import datetime
+from metrics.schemas import MetricMini
 
 class DailyLogBase(BaseModel):
     metric_id: int
@@ -23,7 +24,6 @@ class DailyLogOut(DailyLogBase):
     id: int
     user_id: int
     created_at: datetime
+    metric: MetricMini
 
-    class Config:
-        orm_mode = True
-
+    model_config = ConfigDict(from_attributes=True)

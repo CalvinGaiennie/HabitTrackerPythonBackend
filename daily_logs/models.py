@@ -1,7 +1,8 @@
 from sqlalchemy import Column, Integer, String, Date, ForeignKey, Boolean, TIMESTAMP, Text, Numeric, text
+from sqlalchemy.orm import relationship
 from db.session import Base
 
-class Daily_Logs(Base):
+class DailyLog(Base):
     __tablename__ = "daily_logs"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -14,3 +15,4 @@ class Daily_Logs(Base):
     value_decimal = Column(Numeric(10, 2))
     note = Column(Text)
     created_at = Column(TIMESTAMP, server_default=text("now()"))
+    metric = relationship("Metric", backref="logs")

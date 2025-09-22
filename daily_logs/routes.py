@@ -3,6 +3,7 @@ from sqlalchemy.orm import joinedload, Session
 from db.session import SessionLocal
 from . import models, schemas
 from datetime import date
+from typing import Optional
 
 router = APIRouter(prefix="/daily_logs", tags=["daily_logs"])
 
@@ -34,11 +35,13 @@ def create_or_update_log(log: schemas.DailyLogCreate, db: Session = Depends(get_
     db.refresh(db_log)
     return db_log
 
+from typing import Optional
+
 @router.get("/", response_model=list[schemas.DailyLogOut])
-def get_daily_logs(log_date: date, db: Session = Depends(get_db)):
-    return (
-        db.query(models.DailyLog)
-        .options(joinedload(models.DailyLog.metric))
-        .filter(models.DailyLog.log_date == log_date)
-        .all()
-    )
+def get_daily_logs(log_date: Optional[date] = None, db: Session = Depends(get_db)):
+    query = db.query(models.DailyLog).options(joinedload(models.DailyLog.metric))
+
+    if log_date:
+        query = query.filter(models.DailyLog.log_date == log_date)
+
+    return query.order_by(models.DailyLog.log_date.desc()).all()

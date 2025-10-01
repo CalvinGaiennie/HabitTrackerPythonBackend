@@ -37,10 +37,15 @@ def create_or_update_log(log: schemas.DailyLogCreate, db: Session = Depends(get_
 
 
 @router.get("/", response_model=list[schemas.DailyLogOut])
-def get_daily_logs(log_date: Optional[date] = None, user_id: str = None, db: Session = Depends(get_db)):
+def get_daily_logs(start_date: Optional[date] = None, end_date: Optional[date] = None, log_date: Optional[date] = None, user_id: str = None, db: Session = Depends(get_db)):
     query = db.query(models.DailyLog).options(joinedload(models.DailyLog.metric))
     if log_date:
         query = query.filter(models.DailyLog.log_date == log_date)
+    else:
+        if start_date:
+            query = query.filter(models.DailyLog.log_date >= start_date)
+        if end_date:
+            query = query.filter(models.DailyLog.log_date <= end_date)
     if user_id:
         query = query.filter(models.DailyLog.user_id == user_id)  # Add user_id filter
     return query.order_by(models.DailyLog.log_date.desc()).all()

@@ -82,7 +82,7 @@ CREATE TABLE metrics (
     description TEXT,
     parent_id INT REFERENCES metrics(id) ON DELETE SET NULL,
     is_required BOOLEAN DEFAULT false,
-    data_type VARCHAR(255) NOT NULL CHECK (data_type IN ('int', 'boolean', 'text', 'scale', 'decimal')),
+    data_type VARCHAR(255) NOT NULL CHECK (data_type IN ('int', 'boolean', 'text', 'scale', 'decimal', 'clock')),
     unit VARCHAR(255),
     scale_min INT,  -- only applies if data_type = 'scale'
     scale_max INT,  -- only applies if data_type = 'scale'

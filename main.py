@@ -6,8 +6,29 @@ from users import models as user_models  # Import to register the model
 from fastapi.middleware.cors import CORSMiddleware
 import os
 import psycopg2
+import subprocess
+import sys
 
 app = FastAPI()
+
+# Run database migrations on startup
+def run_migrations():
+    try:
+        print("🔄 Running database migrations...")
+        result = subprocess.run([sys.executable, "run_migrations.py"], 
+                              capture_output=True, text=True, check=True)
+        print("✅ Database migrations completed successfully")
+        print(result.stdout)
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Migration failed: {e}")
+        print(f"Error output: {e.stderr}")
+        # Don't fail the app startup, just log the error
+    except Exception as e:
+        print(f"❌ Migration error: {e}")
+        # Don't fail the app startup, just log the error
+
+# Run migrations on startup
+run_migrations()
 
 app.include_router(metrics_routes.router)
 app.include_router(daily_logs_routes.router)

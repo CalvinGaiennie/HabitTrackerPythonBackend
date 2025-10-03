@@ -92,13 +92,29 @@ def health_check():
 def test_database():
     try:
         from db.session import SessionLocal
+        from sqlalchemy import text
         db = SessionLocal()
         # Simple query to test database connection
-        result = db.execute("SELECT 1 as test").fetchone()
+        result = db.execute(text("SELECT 1 as test")).fetchone()
         db.close()
         return {"status": "database_connected", "test_result": result[0] if result else None}
     except Exception as e:
         return {"status": "database_error", "error": str(e)}
+
+@app.get("/test-metrics")
+def test_metrics_endpoint():
+    try:
+        from db.session import SessionLocal
+        from metrics import models
+        db = SessionLocal()
+        # Test the exact query from the metrics route
+        metrics = db.query(models.Metric).filter(
+            models.Metric.active == True
+        ).all()
+        db.close()
+        return {"status": "metrics_query_success", "count": len(metrics)}
+    except Exception as e:
+        return {"status": "metrics_query_error", "error": str(e)}
 
 # Add error handling middleware
 @app.exception_handler(Exception)

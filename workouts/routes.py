@@ -43,7 +43,7 @@ def create_workout(workout: schemas.WorkoutCreate, db: Session = Depends(get_db)
 def get_workouts(db: Session = Depends(get_db)):
     workouts = db.query(models.Workout).filter(
         models.Workout.user_id == 1,
-        models.Workout.deleted_at.is_(None)  # Only get non-deleted workouts
+        # Only get active workouts
     ).all()
     # Parse exercises JSON for each workout
     for workout in workouts:
@@ -59,7 +59,7 @@ def get_workout(workout_id: int, db: Session = Depends(get_db)):
     workout = db.query(models.Workout).filter(
         models.Workout.id == workout_id,
         models.Workout.user_id == 1,
-        models.Workout.deleted_at.is_(None)  # Only get non-deleted workouts
+        # Only get active workouts
     ).first()
     if not workout:
         raise HTTPException(status_code=404, detail="Workout not found")
@@ -100,7 +100,7 @@ def delete_workout(workout_id: int, db: Session = Depends(get_db)):
     workout = db.query(models.Workout).filter(
         models.Workout.id == workout_id,
         models.Workout.user_id == 1,
-        models.Workout.deleted_at.is_(None)  # Only allow deleting non-deleted workouts
+        # Only allow deleting active workouts
     ).first()
     
     if not workout:

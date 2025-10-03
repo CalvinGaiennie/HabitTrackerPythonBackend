@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import joinedload, Session
+from sqlalchemy.orm import Session
 from db.session import SessionLocal
 from . import models, schemas
 from datetime import date, datetime
@@ -39,8 +39,7 @@ def create_or_update_log(log: schemas.DailyLogCreate, db: Session = Depends(get_
 
 @router.get("/", response_model=list[schemas.DailyLogOut])
 def get_daily_logs(start_date: Optional[date] = None, end_date: Optional[date] = None, log_date: Optional[date] = None, user_id: str = None, db: Session = Depends(get_db)):
-    query = db.query(models.DailyLog).options(joinedload(models.DailyLog.metric)).filter(
-        models.DailyLog.deleted_at.is_(None)
+    query = db.query(models.DailyLog).filter(
     )
     if log_date:
         query = query.filter(models.DailyLog.log_date == log_date)
@@ -157,7 +156,6 @@ def get_clock_status(metric_id: int, date: Optional[str] = None, db: Session = D
 def update_daily_log(log_id: int, log_update: schemas.DailyLogUpdate, db: Session = Depends(get_db)):
     db_log = db.query(models.DailyLog).filter(
         models.DailyLog.id == log_id,
-        models.DailyLog.deleted_at.is_(None)
     ).first()
     
     if not db_log:
@@ -174,7 +172,6 @@ def update_daily_log(log_id: int, log_update: schemas.DailyLogUpdate, db: Sessio
 def delete_daily_log(log_id: int, db: Session = Depends(get_db)):
     db_log = db.query(models.DailyLog).filter(
         models.DailyLog.id == log_id,
-        models.DailyLog.deleted_at.is_(None)
     ).first()
     
     if not db_log:

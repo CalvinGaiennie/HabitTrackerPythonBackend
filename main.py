@@ -92,6 +92,22 @@ app.add_middleware(
 def root():
     return {"message": "Hello World"}
 
+@app.get("/health")
+def health_check():
+    return {"status": "healthy", "message": "Backend is running"}
+
+@app.get("/test-db")
+def test_database():
+    try:
+        from db.session import SessionLocal
+        db = SessionLocal()
+        # Simple query to test database connection
+        result = db.execute("SELECT 1 as test").fetchone()
+        db.close()
+        return {"status": "database_connected", "test_result": result[0] if result else None}
+    except Exception as e:
+        return {"status": "database_error", "error": str(e)}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8000)

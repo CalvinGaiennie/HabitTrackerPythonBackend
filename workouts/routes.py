@@ -41,7 +41,10 @@ def create_workout(workout: schemas.WorkoutCreate, db: Session = Depends(get_db)
 
 @router.get("/", response_model=List[schemas.WorkoutOut])
 def get_workouts(db: Session = Depends(get_db)):
-    workouts = db.query(models.Workout).filter(models.Workout.user_id == 1).all()
+    workouts = db.query(models.Workout).filter(
+        models.Workout.user_id == 1,
+        models.Workout.deleted_at.is_(None)  # Only get non-deleted workouts
+    ).all()
     # Parse exercises JSON for each workout
     for workout in workouts:
         if workout.exercises:
@@ -55,7 +58,8 @@ def get_workouts(db: Session = Depends(get_db)):
 def get_workout(workout_id: int, db: Session = Depends(get_db)):
     workout = db.query(models.Workout).filter(
         models.Workout.id == workout_id,
-        models.Workout.user_id == 1
+        models.Workout.user_id == 1,
+        models.Workout.deleted_at.is_(None)  # Only get non-deleted workouts
     ).first()
     if not workout:
         raise HTTPException(status_code=404, detail="Workout not found")
@@ -95,12 +99,15 @@ def update_workout(workout_id: int, workout_update: schemas.WorkoutUpdate, db: S
 def delete_workout(workout_id: int, db: Session = Depends(get_db)):
     workout = db.query(models.Workout).filter(
         models.Workout.id == workout_id,
-        models.Workout.user_id == 1
+        models.Workout.user_id == 1,
+        models.Workout.deleted_at.is_(None)  # Only allow deleting non-deleted workouts
     ).first()
     
     if not workout:
         raise HTTPException(status_code=404, detail="Workout not found")
     
-    db.delete(workout)
+    # Soft delete: set deleted_at timestamp
+    from datetime import datetime
+    workout.deleted_at = datetime.utcnow()
     db.commit()
     return {"message": "Workout deleted successfully"}

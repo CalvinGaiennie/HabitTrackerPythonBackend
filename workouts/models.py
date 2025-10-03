@@ -13,3 +13,4 @@ class Workout(Base):
     workout_types = Column(ARRAY(String), nullable=True)  # Array of workout types
     notes = Column(String, nullable=True)
     exercises = Column(JSON, nullable=True)  # Store exercise data as JSON
+    deleted_at = Column(TIMESTAMP, nullable=True)  # Soft delete timestamp

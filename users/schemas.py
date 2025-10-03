@@ -9,6 +9,7 @@ class HomePageSection(BaseModel):
 class UserSettings(BaseModel):
     enabledPages: Optional[list[str]] = None
     homePageLayout: Optional[list[HomePageSection]] = None
+    workoutTypes: Optional[list[str]] = None
 
 class UserBase(BaseModel):
     id: int

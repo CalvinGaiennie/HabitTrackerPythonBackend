@@ -27,14 +27,15 @@ CREATE TABLE IF NOT EXISTS users (
 -- WORKOUT TABLES
 -----------------------------------------
 -- Workout sessions
-CREATE TABLE workout (
+CREATE TABLE workouts (
     id SERIAL PRIMARY KEY,
     user_id INT REFERENCES users(id) ON DELETE CASCADE,
     started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     ended_at TIMESTAMPTZ,
     title VARCHAR(255),
-    workout_type VARCHAR(255),
-    notes TEXT
+    workout_types TEXT[],  -- Array of workout types
+    notes TEXT,
+    exercises JSONB  -- Store exercise data as JSON
 );
 
 -- Exercise library

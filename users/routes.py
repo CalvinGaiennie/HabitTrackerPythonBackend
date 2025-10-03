@@ -29,7 +29,13 @@ def update_user(user_id: int, user_settings: schemas.UserSettings, db: Session =
     user = db.query(models.User).get(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    user.settings = user_settings.dict(exclude_unset=True)
+    
+    # Merge new settings with existing settings to preserve fields not being updated
+    existing_settings = user.settings or {}
+    new_settings = user_settings.dict(exclude_unset=True)
+    merged_settings = {**existing_settings, **new_settings}
+    
+    user.settings = merged_settings
     db.commit()
     db.refresh(user)
     return user

@@ -61,16 +61,8 @@ def auto_backup_production():
         print(f"⚠️  Production backup error: {e}")
         # Don't fail the app startup, just log the error
 
-# Skip startup processes in production to avoid blocking app startup
-import os
-if os.getenv("ENVIRONMENT") != "production" and os.getenv("RUN_STARTUP_PROCESSES") == "true":
-    try:
-        run_migrations()
-        # auto_sync_production()  # Disabled for local development
-        auto_backup_production()
-    except Exception as e:
-        print(f"⚠️  Startup processes failed: {e}")
-        # Continue with app startup even if migrations/backup fail
+# Skip all startup processes to ensure app starts successfully
+print("🚀 Starting app without startup processes to avoid production issues")
 
 app.include_router(metrics_routes.router)
 app.include_router(daily_logs_routes.router)
@@ -107,6 +99,11 @@ def test_database():
         return {"status": "database_connected", "test_result": result[0] if result else None}
     except Exception as e:
         return {"status": "database_error", "error": str(e)}
+
+# Add error handling middleware
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    return {"error": "Internal server error", "detail": str(exc)}
 
 if __name__ == "__main__":
     import uvicorn

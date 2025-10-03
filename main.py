@@ -61,9 +61,9 @@ def auto_backup_production():
         print(f"⚠️  Production backup error: {e}")
         # Don't fail the app startup, just log the error
 
-# Run migrations, sync, and backup on startup
+# Run migrations and backup on startup (skip production sync for local)
 run_migrations()
-auto_sync_production()
+# auto_sync_production()  # Disabled for local development
 auto_backup_production()
 
 app.include_router(metrics_routes.router)
@@ -85,3 +85,7 @@ app.add_middleware(
 @app.get("/")
 def root():
     return {"message": "Hello World"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=8000)

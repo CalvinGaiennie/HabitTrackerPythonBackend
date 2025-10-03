@@ -20,7 +20,12 @@ def create_workout(workout: schemas.WorkoutCreate, db: Session = Depends(get_db)
     # Convert exercises to JSON for storage
     exercises_json = None
     if workout.exercises:
-        exercises_json = json.dumps([exercise.dict() for exercise in workout.exercises])
+        try:
+            # Convert to JSON string directly
+            exercises_json = json.dumps(workout.exercises)
+        except Exception as e:
+            print(f"Error converting exercises to JSON: {e}")
+            exercises_json = None
     
     db_workout = models.Workout(
         user_id=1,  # TODO: Get from auth
@@ -64,7 +69,7 @@ def update_workout(workout_id: int, workout_update: schemas.WorkoutUpdate, db: S
     
     # Handle exercises JSON conversion
     if 'exercises' in update_data and update_data['exercises']:
-        update_data['exercises'] = json.dumps([exercise.dict() for exercise in update_data['exercises']])
+        update_data['exercises'] = json.dumps([exercise.model_dump() for exercise in update_data['exercises']])
     
     for field, value in update_data.items():
         setattr(workout, field, value)

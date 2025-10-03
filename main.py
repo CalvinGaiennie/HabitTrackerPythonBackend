@@ -117,9 +117,14 @@ def test_metrics_endpoint():
         return {"status": "metrics_query_error", "error": str(e)}
 
 # Add error handling middleware
+from fastapi.responses import JSONResponse
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
-    return {"error": "Internal server error", "detail": str(exc)}
+    return JSONResponse(
+        status_code=500,
+        content={"error": "Internal server error", "detail": str(exc)}
+    )
 
 if __name__ == "__main__":
     import uvicorn

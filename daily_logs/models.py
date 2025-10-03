@@ -15,4 +15,5 @@ class DailyLog(Base):
     value_decimal = Column(Numeric(10, 2))
     note = Column(Text)
     created_at = Column(TIMESTAMP, server_default=text("now()"))
+    deleted_at = Column(TIMESTAMP, nullable=True)  # Soft delete timestamp
     metric = relationship("Metric", backref="logs")

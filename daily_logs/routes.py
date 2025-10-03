@@ -39,7 +39,9 @@ def create_or_update_log(log: schemas.DailyLogCreate, db: Session = Depends(get_
 
 @router.get("/", response_model=list[schemas.DailyLogOut])
 def get_daily_logs(start_date: Optional[date] = None, end_date: Optional[date] = None, log_date: Optional[date] = None, user_id: str = None, db: Session = Depends(get_db)):
-    query = db.query(models.DailyLog).options(joinedload(models.DailyLog.metric))
+    query = db.query(models.DailyLog).options(joinedload(models.DailyLog.metric)).filter(
+        models.DailyLog.deleted_at.is_(None)
+    )
     if log_date:
         query = query.filter(models.DailyLog.log_date == log_date)
     else:
@@ -150,3 +152,36 @@ def get_clock_status(metric_id: int, date: Optional[str] = None, db: Session = D
         return None
     
     return json.loads(db_log.value_text)
+
+@router.put("/{log_id}", response_model=schemas.DailyLogOut)
+def update_daily_log(log_id: int, log_update: schemas.DailyLogUpdate, db: Session = Depends(get_db)):
+    db_log = db.query(models.DailyLog).filter(
+        models.DailyLog.id == log_id,
+        models.DailyLog.deleted_at.is_(None)
+    ).first()
+    
+    if not db_log:
+        raise HTTPException(status_code=404, detail="Daily log not found")
+    
+    for field, value in log_update.dict(exclude_unset=True).items():
+        setattr(db_log, field, value)
+    
+    db.commit()
+    db.refresh(db_log)
+    return db_log
+
+@router.delete("/{log_id}")
+def delete_daily_log(log_id: int, db: Session = Depends(get_db)):
+    db_log = db.query(models.DailyLog).filter(
+        models.DailyLog.id == log_id,
+        models.DailyLog.deleted_at.is_(None)
+    ).first()
+    
+    if not db_log:
+        raise HTTPException(status_code=404, detail="Daily log not found")
+    
+    # Soft delete: set deleted_at timestamp
+    from datetime import datetime
+    db_log.deleted_at = datetime.utcnow()
+    db.commit()
+    return {"message": "Daily log deleted successfully"}

@@ -5,10 +5,8 @@ Runs SQL migration files in order
 """
 import os
 import psycopg2
+from config import DATABASE_URL
 import glob
-
-# Get database URL from environment or use default
-DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://postgres:postgres@localhost:5432/habit_tracker')
 
 def run_migrations():
     """Run all migration files in order"""

@@ -5,7 +5,8 @@ Runs SQL migration files in order
 """
 import os
 import psycopg2
-from config import DATABASE_URL
+from config import settings
+DATABASE_URL = settings.DATABASE_URL
 import glob
 
 def run_migrations():

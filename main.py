@@ -17,7 +17,7 @@ app.include_router(users_routes.router)
 # CORS middleware (allows all localhost ports for development)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "https://cghabittracker.netlify.app", "http://127.0.0.1:5173"],
+    allow_origins=["http://localhost:5173", "http://localhost:5174", "https://cghabittracker.netlify.app", "http://127.0.0.1:5173", "http://127.0.0.1:5174"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

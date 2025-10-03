@@ -7,7 +7,8 @@ class HomePageSection(BaseModel):
     metricIds: list[int]
 
 class UserSettings(BaseModel):
-    homePage: Optional[HomePageSection] = None
+    enabledPages: Optional[list[str]] = None
+    homePageLayout: Optional[list[HomePageSection]] = None
 
 class UserBase(BaseModel):
     id: int

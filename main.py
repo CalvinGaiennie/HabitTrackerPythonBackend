@@ -27,8 +27,42 @@ def run_migrations():
         print(f"❌ Migration error: {e}")
         # Don't fail the app startup, just log the error
 
-# Run migrations on startup
+# Auto-sync production data (every startup)
+def auto_sync_production():
+    try:
+        print("🔄 Syncing production data...")
+        result = subprocess.run([sys.executable, "sync_production_data.py"], 
+                              capture_output=True, text=True, check=True)
+        print("✅ Production data sync completed")
+        print(result.stdout)
+    except subprocess.CalledProcessError as e:
+        print(f"⚠️  Production sync failed: {e}")
+        print(f"Error output: {e.stderr}")
+        # Don't fail the app startup, just log the error
+    except Exception as e:
+        print(f"⚠️  Production sync error: {e}")
+        # Don't fail the app startup, just log the error
+
+# Auto-backup production data (once per day)
+def auto_backup_production():
+    try:
+        print("🔄 Checking for production backup...")
+        result = subprocess.run([sys.executable, "create_sql_backup.py"], 
+                              capture_output=True, text=True, check=True)
+        print("✅ Production backup completed")
+        print(result.stdout)
+    except subprocess.CalledProcessError as e:
+        print(f"⚠️  Production backup failed: {e}")
+        print(f"Error output: {e.stderr}")
+        # Don't fail the app startup, just log the error
+    except Exception as e:
+        print(f"⚠️  Production backup error: {e}")
+        # Don't fail the app startup, just log the error
+
+# Run migrations, sync, and backup on startup
 run_migrations()
+auto_sync_production()
+auto_backup_production()
 
 app.include_router(metrics_routes.router)
 app.include_router(daily_logs_routes.router)

@@ -61,10 +61,16 @@ def auto_backup_production():
         print(f"⚠️  Production backup error: {e}")
         # Don't fail the app startup, just log the error
 
-# Run migrations and backup on startup (skip production sync for local)
-run_migrations()
-# auto_sync_production()  # Disabled for local development
-auto_backup_production()
+# Skip startup processes in production to avoid blocking app startup
+import os
+if os.getenv("ENVIRONMENT") != "production" and os.getenv("RUN_STARTUP_PROCESSES") == "true":
+    try:
+        run_migrations()
+        # auto_sync_production()  # Disabled for local development
+        auto_backup_production()
+    except Exception as e:
+        print(f"⚠️  Startup processes failed: {e}")
+        # Continue with app startup even if migrations/backup fail
 
 app.include_router(metrics_routes.router)
 app.include_router(daily_logs_routes.router)

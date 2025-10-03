@@ -42,6 +42,13 @@ def create_workout(workout: schemas.WorkoutCreate, db: Session = Depends(get_db)
 @router.get("/", response_model=List[schemas.WorkoutOut])
 def get_workouts(db: Session = Depends(get_db)):
     workouts = db.query(models.Workout).filter(models.Workout.user_id == 1).all()
+    # Parse exercises JSON for each workout
+    for workout in workouts:
+        if workout.exercises:
+            try:
+                workout.exercises = json.loads(workout.exercises)
+            except (json.JSONDecodeError, TypeError):
+                workout.exercises = None
     return workouts
 
 @router.get("/{workout_id}", response_model=schemas.WorkoutOut)
@@ -52,6 +59,12 @@ def get_workout(workout_id: int, db: Session = Depends(get_db)):
     ).first()
     if not workout:
         raise HTTPException(status_code=404, detail="Workout not found")
+    # Parse exercises JSON
+    if workout.exercises:
+        try:
+            workout.exercises = json.loads(workout.exercises)
+        except (json.JSONDecodeError, TypeError):
+            workout.exercises = None
     return workout
 
 @router.patch("/{workout_id}", response_model=schemas.WorkoutOut)

@@ -138,7 +138,9 @@ def clock_out(metric_id: int, db: Session = Depends(get_db)):
 
 @router.get("/clock-status/{metric_id}")
 def get_clock_status(metric_id: int, date: Optional[str] = None, db: Session = Depends(get_db)):
-    target_date = date or date.today().isoformat()
+    from datetime import date as date_class
+    target_date_str = date or date_class.today().isoformat()
+    target_date = date_class.fromisoformat(target_date_str)
     
     db_log = (
         db.query(models.DailyLog)

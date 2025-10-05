@@ -24,6 +24,7 @@ class DailyLogOut(DailyLogBase):
     id: int
     user_id: int
     created_at: datetime
+    deleted_at: Optional[datetime] = None
     metric: MetricMini
 
     model_config = ConfigDict(from_attributes=True)

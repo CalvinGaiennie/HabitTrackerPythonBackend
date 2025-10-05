@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, ForeignKey, Boolean, TIMESTAMP, Text, Numeric, text
+from sqlalchemy import Column, Integer, String, Date, ForeignKey, Boolean, TIMESTAMP, Text, Numeric, text, DateTime
 from sqlalchemy.orm import relationship
 from db.session import Base
 
@@ -15,4 +15,5 @@ class DailyLog(Base):
     value_decimal = Column(Numeric(10, 2))
     note = Column(Text)
     created_at = Column(TIMESTAMP, server_default=text("now()"))
+    deleted_at = Column(DateTime)
     metric = relationship("Metric", backref="logs")

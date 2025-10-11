@@ -16,6 +16,20 @@ def get_db():
     finally:
         db.close()
 
+@router.post("/create", response_model=schemas.UserBase)
+def create_user(user: User, db: Session = Depends(get_db)):
+    existing_user = db.query(models.User).filter(models.User.email == user.email).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="User already exist")
+
+    new_user = models.User(user.dict())
+
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    return new_user
+
 @router.get("/{user_id}", response_model=schemas.UserBase)
 def get_user(user_id: int, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.id == user_id).first()
@@ -39,3 +53,5 @@ def update_user(user_id: int, user_settings: schemas.UserSettings, db: Session =
     db.commit()
     db.refresh(user)
     return user
+
+

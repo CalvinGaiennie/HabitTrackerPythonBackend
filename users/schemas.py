@@ -11,6 +11,14 @@ class UserSettings(BaseModel):
     homePageLayout: Optional[list[HomePageSection]] = None
     workoutTypes: Optional[list[str]] = None
 
+class UserCreate(BaseModel):
+    username: str
+    email: str
+    password: str
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    settings: Optional[dict] = {}
+
 class UserBase(BaseModel):
     id: int
     settings: dict

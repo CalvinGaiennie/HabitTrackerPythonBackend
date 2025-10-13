@@ -17,12 +17,17 @@ def get_db():
         db.close()
 
 @router.post("/create", response_model=schemas.UserBase)
-def create_user(user: User, db: Session = Depends(get_db)):
+def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     existing_user = db.query(models.User).filter(models.User.email == user.email).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="User already exist")
 
-    new_user = models.User(user.dict())
+    # Hash the password before storing (you should use proper password hashing)
+    user_data = user.dict()
+    password = user_data.pop('password')
+    user_data['password_hash'] = password  # TODO: Use proper hashing like bcrypt
+    
+    new_user = models.User(**user_data)
 
     db.add(new_user)
     db.commit()

@@ -4,7 +4,11 @@ from daily_logs import routes as daily_logs_routes
 from users import routes as users_routes
 from users import models as user_models  # Import to register the model
 from workouts import routes as workouts_routes
-from workouts import models as workout_models  # Import to register the model
+from workouts import models as workout_models  
+# Import to register the model
+from exercises import routes as exercises_routes
+from exercises import models as exercises_models
+
 from fastapi.middleware.cors import CORSMiddleware
 import os
 import psycopg2
@@ -68,6 +72,7 @@ app.include_router(metrics_routes.router)
 app.include_router(daily_logs_routes.router)
 app.include_router(users_routes.router)
 app.include_router(workouts_routes.router)
+app.include_router(exercises_routes.router)
 
 
 # CORS middleware (allows all localhost ports for development)

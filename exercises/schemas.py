@@ -1,35 +1,41 @@
 from pydantic import BaseModel
-from typing import Optional
-
-class Exercise(Base):
-    __tablename__ = "exercises"
-
+from typing import Optional, List
 
 class ExerciseBase(BaseModel):
-
-class ExerciseCreate():
     user_id: int
     name: str
     description: Optional[str] = None
     exercise_type: Optional[str] = None
     exercise_subtype: Optional[str] = None
-    primary_muscles: str
-    secondary_muscles: Optional[str] = None
-    tags: str
+    primary_muscles: List[str]
+    secondary_muscles: Optional[List[str]] = None
+    tags: Optional[List[str]] = None
 
-class ExerciseUpdate():
+class ExerciseCreate(ExerciseBase):
+    equipment: Optional[str] = None
+    equipment_modifiers: Optional[List[str]] = None
+    injury_pain: Optional[str] = None
 
-class ExerciseOut():
+class ExerciseUpdate(BaseModel):
+    user_id: Optional[int] = None
+    name: Optional[str] = None
+    description: Optional[str] = None
+    exercise_type: Optional[str] = None
+    exercise_subtype: Optional[str] = None
+    primary_muscles: Optional[List[str]] = None
+    secondary_muscles: Optional[List[str]] = None
+    tags: Optional[List[str]] = None
+    equipment: Optional[str] = None
+    equipment_modifiers: Optional[List[str]] = None
+    injury_pain: Optional[str] = None
 
-class ExerciseFullForExampleWhenWritingSchemas():
+class ExerciseOut(ExerciseBase):
     id: int
-    user_id: int
-    name: str
-    description: Optional[str] = None
-    exercise_type: Optional[str] = None
-    exercise_subtype: Optional[str] = None
-    primary_muscles: str
-    secondary_muscles: Optional[str] = None
-    equipment: str
-    tags: str
-    injury_pain: str
+    equipment: Optional[str] = None
+    equipment_modifiers: Optional[List[str]] = None
+    injury_pain: Optional[str] = None
+
+    model_config = {"from_attributes": True}
+
+class ExerciseFullExample(ExerciseOut):
+    pass

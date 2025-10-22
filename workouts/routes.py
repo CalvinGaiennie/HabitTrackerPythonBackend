@@ -17,22 +17,17 @@ def get_db():
 
 @router.post("/", response_model=schemas.WorkoutOut)
 def create_workout(workout: schemas.WorkoutCreate, db: Session = Depends(get_db)):
-    # Convert exercises to JSON for storage
-    exercises_json = None
+    # Store exercises as native JSON (list of dicts); SQLAlchemy JSON will serialize
+    exercises_payload = None
     if workout.exercises:
-        try:
-            # Convert to JSON string directly
-            exercises_json = json.dumps(workout.exercises)
-        except Exception as e:
-            print(f"Error converting exercises to JSON: {e}")
-            exercises_json = None
-    
+        exercises_payload = [ex.model_dump() for ex in workout.exercises]
+
     db_workout = models.Workout(
         user_id=1,  # TODO: Get from auth
         title=workout.title,
         workout_types=workout.workout_types,
         notes=workout.notes,
-        exercises=exercises_json
+        exercises=exercises_payload
     )
     db.add(db_workout)
     db.commit()
@@ -45,9 +40,9 @@ def get_workouts(db: Session = Depends(get_db)):
         models.Workout.user_id == 1,
         # Only get active workouts
     ).all()
-    # Parse exercises JSON for each workout
+    # Normalize exercises to Python objects
     for workout in workouts:
-        if workout.exercises:
+        if isinstance(workout.exercises, str):
             try:
                 workout.exercises = json.loads(workout.exercises)
             except (json.JSONDecodeError, TypeError):
@@ -63,8 +58,8 @@ def get_workout(workout_id: int, db: Session = Depends(get_db)):
     ).first()
     if not workout:
         raise HTTPException(status_code=404, detail="Workout not found")
-    # Parse exercises JSON
-    if workout.exercises:
+    # Normalize exercises to Python objects
+    if isinstance(workout.exercises, str):
         try:
             workout.exercises = json.loads(workout.exercises)
         except (json.JSONDecodeError, TypeError):

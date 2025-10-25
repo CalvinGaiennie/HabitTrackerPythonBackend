@@ -19,6 +19,14 @@ class UserCreate(BaseModel):
     last_name: Optional[str] = None
     settings: Optional[dict] = {}
 
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+class PasswordChange(BaseModel):
+    old_password: str
+    new_password: str
+
 class UserBase(BaseModel):
     id: int
     settings: dict
@@ -32,3 +40,7 @@ class UserBase(BaseModel):
     is_verified: Optional[bool] = False
     class Config:
         from_attributes = True
+
+class UserResponse(BaseModel):
+    user: UserBase
+    access_token: str

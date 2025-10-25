@@ -54,7 +54,7 @@ def update_metric(metric_id: int, metric_update: schemas.MetricUpdate, db: Sessi
     if not metric:
         raise HTTPException(status_code=404, detail="Metric not found")
     
-    for field, value in metric_update.dict(exclude_unset=True).items():
+    for field, value in metric_update.model_dump(exclude_unset=True).items():
         setattr(metric, field, value)
     
     db.commit()

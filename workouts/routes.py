@@ -77,7 +77,7 @@ def update_workout(workout_id: int, workout_update: schemas.WorkoutUpdate, db: S
         raise HTTPException(status_code=404, detail="Workout not found")
     
     # Update fields if provided
-    update_data = workout_update.dict(exclude_unset=True)
+    update_data = workout_update.model_dump(exclude_unset=True)
     
     # Handle exercises JSON conversion
     if 'exercises' in update_data and update_data['exercises']:

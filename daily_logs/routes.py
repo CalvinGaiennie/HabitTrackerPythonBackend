@@ -25,11 +25,11 @@ def create_or_update_log(log: schemas.DailyLogCreate, db: Session = Depends(get_
     )
 
     if db_log:
-        for field, value in log.dict(exclude_unset=True).items():
+        for field, value in log.model_dump(exclude_unset=True).items():
             setattr(db_log, field, value)
 
     else: 
-        db_log = models.DailyLog(**log.dict())
+        db_log = models.DailyLog(**log.model_dump())
         db.add(db_log)
 
     db.commit()
@@ -162,7 +162,7 @@ def update_daily_log(log_id: int, log_update: schemas.DailyLogUpdate, db: Sessio
     if not db_log:
         raise HTTPException(status_code=404, detail="Daily log not found")
     
-    for field, value in log_update.dict(exclude_unset=True).items():
+    for field, value in log_update.model_dump(exclude_unset=True).items():
         setattr(db_log, field, value)
     
     db.commit()

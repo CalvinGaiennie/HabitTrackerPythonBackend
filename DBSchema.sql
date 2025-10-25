@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS users (
 -- WORKOUT TABLES
 -----------------------------------------
 -- Workout sessions
-CREATE TABLE workouts (
+CREATE TABLE IF NOT EXISTS workouts (
     id SERIAL PRIMARY KEY,
     user_id INT REFERENCES users(id) ON DELETE CASCADE,
     started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -39,7 +39,7 @@ CREATE TABLE workouts (
 );
 
 -- Exercise library
-CREATE TABLE exercise (
+CREATE TABLE IF NOT EXISTS exercise (
     id SERIAL PRIMARY KEY,
     user_id INT REFERENCES users(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL UNIQUE,
@@ -55,9 +55,9 @@ CREATE TABLE exercise (
 );
 
 -- Individual sets performed in a workout
-CREATE TABLE set_entry (
+CREATE TABLE IF NOT EXISTS set_entry (
     id SERIAL PRIMARY KEY,
-    workout_id INT NOT NULL REFERENCES workout(id) ON DELETE CASCADE,
+    workout_id INT NOT NULL REFERENCES workouts(id) ON DELETE CASCADE,
     exercise_id INT NOT NULL REFERENCES exercise(id),
     set_number INT NOT NULL,                -- order in the workout
     set_type VARCHAR(255),
@@ -74,7 +74,7 @@ CREATE TABLE set_entry (
 --DAILY/LOGS
 -------------------------------------
 --the things youre tracking 
-CREATE TABLE metrics (
+CREATE TABLE IF NOT EXISTS metrics (
     id SERIAL PRIMARY KEY,
     user_id INT REFERENCES users(id) ON DELETE CASCADE,
     category VARCHAR(255),
@@ -97,7 +97,7 @@ CREATE TABLE metrics (
 
 
 -- metric history to be able to see when certain things were active
-CREATE TABLE metric_history (
+CREATE TABLE IF NOT EXISTS metric_history (
     id SERIAL PRIMARY KEY,
     metric_id INT NOT NULL REFERENCES metrics(id) ON DELETE CASCADE,
     user_id INT REFERENCES users(id) ON DELETE CASCADE,
@@ -107,7 +107,7 @@ CREATE TABLE metric_history (
     changed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE daily_logs (
+CREATE TABLE IF NOT EXISTS daily_logs (
     id SERIAL PRIMARY KEY,
     user_id INT REFERENCES users(id) ON DELETE CASCADE,
     metric_id INT NOT NULL REFERENCES metrics(id) ON DELETE CASCADE,
@@ -125,7 +125,7 @@ CREATE TABLE daily_logs (
 --HABIT/GOAL/TRACKER
 ----------------------------------------
 -- GOALS TABLE
-CREATE TABLE goals (
+CREATE TABLE IF NOT EXISTS goals (
     id SERIAL PRIMARY KEY,
     user_id INT REFERENCES users(id) ON DELETE CASCADE,
     metric_id INT REFERENCES metrics(id) ON DELETE SET NULL, -- optional tie to a metric
@@ -143,7 +143,7 @@ CREATE TABLE goals (
     notes TEXT
 );
 
-CREATE TABLE goal_history (
+CREATE TABLE IF NOT EXISTS goal_history (
     id SERIAL PRIMARY KEY,
     goal_id INT NOT NULL REFERENCES goals(id) ON DELETE CASCADE,
     change_type TEXT CHECK (change_type IN ('status', 'progress', 'note')),
@@ -158,7 +158,7 @@ CREATE TABLE goal_history (
 --Finanace
 
 --Diet
-CREATE TABLE food (
+CREATE TABLE IF NOT EXISTS foods (
     id SERIAL PRIMARY KEY,
     user_id INT REFERENCES users(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
@@ -177,10 +177,10 @@ CREATE TABLE food (
 );
 
 
-CREATE TABLE food_entry (
+CREATE TABLE IF NOT EXISTS food_entry (
     id SERIAL PRIMARY KEY,
     user_id INT REFERENCES users(id) ON DELETE CASCADE,
-    food_id INT REFERENCES food(id) ON DELETE SET NULL,
+    food_id INT REFERENCES foods(id) ON DELETE SET NULL,
     log_date DATE NOT NULL,
     quantity NUMERIC(6,2) NOT NULL DEFAULT 1, -- multiplier of serving size
     calories NUMERIC(8,2),
@@ -196,4 +196,4 @@ CREATE TABLE food_entry (
     UNIQUE(user_id, food_id, log_date, created_at) 
 );
 
-CREATE SEQUENCE superset_seq START 1;
+CREATE SEQUENCE IF NOT EXISTS superset_seq START 1;

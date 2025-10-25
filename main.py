@@ -65,8 +65,27 @@ def auto_backup_production():
         print(f"⚠️  Production backup error: {e}")
         # Don't fail the app startup, just log the error
 
-# Skip all startup processes to ensure app starts successfully
-print("🚀 Starting app without startup processes to avoid production issues")
+# Apply database schema on startup
+def apply_database_schema():
+    try:
+        print("🔄 Applying database schema...")
+        result = subprocess.run([sys.executable, "apply_schema.py"], 
+                              capture_output=True, text=True, check=True)
+        print("✅ Database schema applied successfully")
+        print(result.stdout)
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Schema application failed: {e}")
+        print(f"Error output: {e.stderr}")
+        # Don't fail the app startup, just log the error
+    except Exception as e:
+        print(f"❌ Schema application error: {e}")
+        # Don't fail the app startup, just log the error
+
+# Run schema on every startup
+apply_database_schema()
+
+# Skip other startup processes to avoid production issues
+print("🚀 App started successfully")
 
 app.include_router(metrics_routes.router)
 app.include_router(daily_logs_routes.router)

@@ -2,7 +2,7 @@ from db.session import Base
 from sqlalchemy import Column, Integer, String, Text, ForeignKey
 from sqlalchemy.dialects.postgresql import ARRAY
 
-class Exercise(Base):
+class ExerciseFull(Base):
     __tablename__ = "exercise"
 
     id = Column(Integer, primary_key=True, index=True)

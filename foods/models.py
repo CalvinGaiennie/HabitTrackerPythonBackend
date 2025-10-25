@@ -10,7 +10,7 @@ class Food(Base):
     name = Column(String(255), nullable=False, unique=True)
     brand = Column(String(255))
     serving_size_amount = Column(Numeric(precision=8, scale=2), nullable=False, default=100)
-    serving_size_unit = Column(String(255), CheckConstraint("serving_size_unit IN ('g', 'ml', 'piece', 'cup', 'tbsp', 'tsp')"), nullable=False, default='g')
+    serving_size_unit = Column(String(255), nullable=False)
     serving_unit = Column(String(255))
     calories = Column(Numeric(precision=8, scale=2))
     protein_g = Column(Numeric(precision=8, scale=2))

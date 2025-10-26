@@ -103,7 +103,7 @@ def get_workouts(db: Session = Depends(get_db)):
     workouts = db.query(models.Workout).filter(
         models.Workout.user_id == 1,
         models.Workout.is_draft == False,  # Exclude drafts from workout list
-        # Only get active workouts
+        models.Workout.deleted_at.is_(None)  # Only get active (non-deleted) workouts
     ).all()
     # Normalize exercises to Python objects
     for workout in workouts:
@@ -119,7 +119,7 @@ def get_workout(workout_id: int, db: Session = Depends(get_db)):
     workout = db.query(models.Workout).filter(
         models.Workout.id == workout_id,
         models.Workout.user_id == 1,
-        # Only get active workouts
+        models.Workout.deleted_at.is_(None)  # Only get active workouts
     ).first()
     if not workout:
         raise HTTPException(status_code=404, detail="Workout not found")
@@ -135,7 +135,8 @@ def get_workout(workout_id: int, db: Session = Depends(get_db)):
 def update_workout(workout_id: int, workout_update: schemas.WorkoutUpdate, db: Session = Depends(get_db)):
     workout = db.query(models.Workout).filter(
         models.Workout.id == workout_id,
-        models.Workout.user_id == 1
+        models.Workout.user_id == 1,
+        models.Workout.deleted_at.is_(None)  # Only allow updating active workouts
     ).first()
     
     if not workout:
@@ -160,7 +161,7 @@ def delete_workout(workout_id: int, db: Session = Depends(get_db)):
     workout = db.query(models.Workout).filter(
         models.Workout.id == workout_id,
         models.Workout.user_id == 1,
-        # Only allow deleting active workouts
+        models.Workout.deleted_at.is_(None)  # Only allow deleting active workouts
     ).first()
     
     if not workout:

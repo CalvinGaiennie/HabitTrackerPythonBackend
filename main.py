@@ -84,7 +84,9 @@ def apply_database_schema():
 # Run schema on every startup
 apply_database_schema()
 
-# Skip other startup processes to avoid production issues
+# Auto-backup production database (once per day)
+auto_backup_production()
+
 print("🚀 App started successfully")
 
 app.include_router(metrics_routes.router)

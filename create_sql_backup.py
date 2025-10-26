@@ -134,8 +134,8 @@ def create_sql_backup():
             # Mark as backed up
             mark_backed_up()
             
-            # Clean up old backups (keep last 7 days)
-            cleanup_old_backups(backups_dir)
+            # Clean up old backups (disabled - keeping all backups)
+            # cleanup_old_backups(backups_dir)
             
         else:
             print(f"❌ Backup failed: {result.stderr}")

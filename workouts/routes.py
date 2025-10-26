@@ -22,22 +22,87 @@ def create_workout(workout: schemas.WorkoutCreate, db: Session = Depends(get_db)
     if workout.exercises:
         exercises_payload = [ex.model_dump() for ex in workout.exercises]
 
+    # Delete any existing draft when creating a real workout
+    db.query(models.Workout).filter(
+        models.Workout.user_id == 1,
+        models.Workout.is_draft == True
+    ).delete()
+
     db_workout = models.Workout(
         user_id=1,  # TODO: Get from auth
         title=workout.title,
         workout_types=workout.workout_types,
         notes=workout.notes,
-        exercises=exercises_payload
+        exercises=exercises_payload,
+        is_draft=False
     )
     db.add(db_workout)
     db.commit()
     db.refresh(db_workout)
     return db_workout
 
+@router.get("/draft", response_model=schemas.WorkoutOut)
+def get_draft(db: Session = Depends(get_db)):
+    """Get the user's current workout draft"""
+    draft = db.query(models.Workout).filter(
+        models.Workout.user_id == 1,  # TODO: Get from auth
+        models.Workout.is_draft == True
+    ).first()
+    
+    if not draft:
+        raise HTTPException(status_code=404, detail="No draft found")
+    
+    # Normalize exercises to Python objects
+    if isinstance(draft.exercises, str):
+        try:
+            draft.exercises = json.loads(draft.exercises)
+        except (json.JSONDecodeError, TypeError):
+            draft.exercises = None
+    
+    return draft
+
+@router.post("/draft", response_model=schemas.WorkoutOut)
+def save_draft(workout: schemas.WorkoutCreate, db: Session = Depends(get_db)):
+    """Save or update the workout draft"""
+    exercises_payload = None
+    if workout.exercises:
+        exercises_payload = [ex.model_dump() for ex in workout.exercises]
+    
+    # Check if draft already exists
+    existing_draft = db.query(models.Workout).filter(
+        models.Workout.user_id == 1,  # TODO: Get from auth
+        models.Workout.is_draft == True
+    ).first()
+    
+    if existing_draft:
+        # Update existing draft
+        existing_draft.title = workout.title
+        existing_draft.workout_types = workout.workout_types
+        existing_draft.notes = workout.notes
+        existing_draft.exercises = exercises_payload
+        db.commit()
+        db.refresh(existing_draft)
+        return existing_draft
+    else:
+        # Create new draft
+        db_draft = models.Workout(
+            user_id=1,  # TODO: Get from auth
+            title=workout.title,
+            workout_types=workout.workout_types,
+            notes=workout.notes,
+            exercises=exercises_payload,
+            is_draft=True
+        )
+        db.add(db_draft)
+        db.commit()
+        db.refresh(db_draft)
+        return db_draft
+
 @router.get("/", response_model=List[schemas.WorkoutOut])
 def get_workouts(db: Session = Depends(get_db)):
     workouts = db.query(models.Workout).filter(
         models.Workout.user_id == 1,
+        models.Workout.is_draft == False,  # Exclude drafts from workout list
         # Only get active workouts
     ).all()
     # Normalize exercises to Python objects

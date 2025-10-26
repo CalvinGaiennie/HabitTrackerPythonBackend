@@ -14,7 +14,7 @@ def get_db():
 
 @router.post("/", response_model=schemas.ExerciseCreate)
 def create_exercise(exercise: schemas.ExerciseCreate, db: Session = Depends(get_db)):
-    db_exercise = models.Exercise(**exercise.model_dump())
+    db_exercise = models.ExerciseFull(**exercise.model_dump())
     db.add(db_exercise)
     db.commit()
     db.refresh(db_exercise)
@@ -22,4 +22,4 @@ def create_exercise(exercise: schemas.ExerciseCreate, db: Session = Depends(get_
 
 @router.get("/", response_model=list[schemas.ExerciseCreate])
 def get_exercises(db: Session = Depends(get_db)):
-    return db.query(models.Exercise).all()
+    return db.query(models.ExerciseFull).all()

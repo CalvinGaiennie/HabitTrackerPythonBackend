@@ -35,7 +35,8 @@ CREATE TABLE IF NOT EXISTS workouts (
     title VARCHAR(255),
     workout_types TEXT[],  -- Array of workout types
     notes TEXT,
-    exercises JSONB  -- Store exercise data as JSON
+    exercises JSONB,  -- Store exercise data as JSON
+    is_draft BOOLEAN DEFAULT false  -- True for drafts, false for completed workouts
 );
 
 -- Exercise library

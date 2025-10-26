@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, text, TIMESTAMP, ForeignKey, JSON, ARRAY
+from sqlalchemy import Column, Integer, String, text, TIMESTAMP, ForeignKey, JSON, ARRAY, Boolean
 from db.session import Base
 
 
@@ -15,5 +15,7 @@ class Workout(Base):
     notes = Column(String, nullable=True)
     # JSONB in DB; SQLAlchemy JSON maps fine for Postgres JSONB
     exercises = Column(JSON, nullable=True)
+    # Draft flag
+    is_draft = Column(Boolean, default=False, server_default=text("false"))
     # Soft delete column
     deleted_at = Column(TIMESTAMP, nullable=True)

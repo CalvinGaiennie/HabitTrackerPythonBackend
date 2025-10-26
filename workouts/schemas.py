@@ -40,6 +40,7 @@ class WorkoutOut(WorkoutBase):
     user_id: int
     started_at: datetime
     ended_at: Optional[datetime] = None
+    is_draft: bool = False
     deleted_at: Optional[datetime] = None
     
     class Config:

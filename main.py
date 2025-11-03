@@ -8,6 +8,7 @@ from workouts import models as workout_models
 # Import to register the model
 from exercises import routes as exercises_routes
 from exercises import models as exercises_models
+from stripe import routes as stripe_routes
 
 from fastapi.middleware.cors import CORSMiddleware
 import os
@@ -94,6 +95,7 @@ app.include_router(daily_logs_routes.router)
 app.include_router(users_routes.router)
 app.include_router(workouts_routes.router)
 app.include_router(exercises_routes.router)
+app.include_router(stripe_routes.router)
 
 
 # CORS middleware (allows all localhost ports for development)

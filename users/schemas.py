@@ -44,3 +44,6 @@ class UserBase(BaseModel):
 class UserResponse(BaseModel):
     user: UserBase
     access_token: str
+
+class UserWithTier(UserBase):
+    tier: str  # "free" | "monthly" | "annual"

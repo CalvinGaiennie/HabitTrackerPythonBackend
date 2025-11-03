@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from db.session import SessionLocal
 from . import models, schemas
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Optional
 import json
+from .utils.clock import parse_clock_data
 
 router = APIRouter(prefix="/daily_logs", tags=["daily_logs"])
 
@@ -152,6 +153,51 @@ def get_clock_status(metric_id: int, date: Optional[str] = None, db: Session = D
         return None
     
     return json.loads(db_log.value_text)
+
+@router.get("/clock-status-for-week/{metric_id}")
+def get_clock_status_for_week(metric_id: int, *, end_date: Optional[str] = Query( None, description="=ISO date (YYYY-MM-DD) - defaults to today"), db: Session = Depends(get_db),):
+    today = date.today()
+    ref_date = today
+    if end_date:
+        try:
+            ref_date = date.fromisoformat(end_date)
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid end_date - must be YYYY-MM-DD"
+            )
+    monday = ref_date - timedelta(days=ref_date.isoweekday() - 1)
+    week_days = [monday + timedelta(days=i) for i in range(7)]
+    
+    rows = (db.query(models.DailyLog)
+        .filter(models.DailyLog.metric_id == metric_id)
+        .filter(models.DailyLog.log_date >= week_days[0])
+        .filter(models.DailyLog.log_date <= week_days[6])
+        .all()
+    )
+
+    day_map: dict[str, int] = {}
+    weekly_total = 0
+
+    for row in rows:
+        clock_data = parse_clock_data(row.value_text)
+        minutes = clock_data.get("total_duration_minutes", 0)
+        iso = row.log_date.isoformat()
+        day_map[iso] = minutes
+        weekly_total += minutes
+    
+    days_out: List[dict] = []
+    for d in week_days:
+        iso= d.isoformat()
+        days_out.append({"date": iso, "minutes": day_map.get(iso, 0)})
+
+    return {
+        "week_start": monday.isoformat(),
+        "week_end": (monday + timedelta(days=6)).isoformat(),
+        "weekly_total_minutes": weekly_total,
+        "days": days_out,
+    }
+
 
 @router.put("/{log_id}", response_model=schemas.DailyLogOut)
 def update_daily_log(log_id: int, log_update: schemas.DailyLogUpdate, db: Session = Depends(get_db)):

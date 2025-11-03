@@ -23,6 +23,10 @@ CREATE TABLE IF NOT EXISTS users (
     CONSTRAINT users_email_check CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$')
 );
 
+-- Add Stripe linkage column if it does not exist
+ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS stripe_customer_id VARCHAR(255) UNIQUE;
+
 
 -- WORKOUT TABLES
 -----------------------------------------
@@ -198,3 +202,14 @@ CREATE TABLE IF NOT EXISTS food_entry (
 );
 
 CREATE SEQUENCE IF NOT EXISTS superset_seq START 1;
+
+-- STRIPE TABLES
+-----------------------------------------
+CREATE TABLE IF NOT EXISTS stripe_customers (
+    id SERIAL PRIMARY KEY,
+    stripe_customer_id VARCHAR(255) UNIQUE NOT NULL,
+    tier VARCHAR(20),
+    active BOOLEAN DEFAULT false,
+    subscription_id VARCHAR(255),
+    created_at TIMESTAMPTZ DEFAULT now()
+);

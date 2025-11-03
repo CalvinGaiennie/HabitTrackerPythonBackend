@@ -1,22 +1,27 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional
 
-class FoodBase(BaseModel):
-    id: int
+
+class FoodCreate(BaseModel):
     name: str
-    serving_size_ammount: int
-    serving_size_unit: str
-    serving_unit: str
-    calories: int
-    protein_g: int
-    carbs_g: int
-    fat_g: int
-    notes: str
+    category: Optional[str] = None
+    brand: Optional[str] = None
+    serving_size_amount: Optional[float] = 100
+    serving_size_unit: Optional[str] = "g"
+    serving_unit: Optional[str] = None
+    calories: Optional[float] = None
+    protein_g: Optional[float] = None
+    carbs_g: Optional[float] = None
+    fat_g: Optional[float] = None
+    fiber_g: Optional[float] = None
+    notes: Optional[str] = None
 
 
-class FoodCreate(FoodBase):
-    created_at: datetime
+class FoodOut(FoodCreate):
+    id: int
+    user_id: Optional[int] = None
+    created_at: Optional[datetime] = None
 
-class FoodOut(FoodBase):
-    pass
+    class Config:
+        from_attributes = True

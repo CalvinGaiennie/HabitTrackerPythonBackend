@@ -15,3 +15,5 @@ class User(Base):
     last_login = Column(TIMESTAMP)
     is_verified = Column(Boolean, default=False)
     settings = Column(JSONB, default={})
+    # Stripe linkage
+    stripe_customer_id = Column(String(255), unique=True, nullable=True)

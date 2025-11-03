@@ -4,11 +4,15 @@ from . import models, schemas
 from db.session import SessionLocal
 from core.auth import hash_password, verify_password, create_access_token, get_current_user_id
 import logging
+import os
+import requests
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/users", tags=["users"])
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
+STRIPE_API = "https://api.stripe.com/v1"
 
 def get_db():
     db = SessionLocal()
@@ -72,13 +76,67 @@ def login(credentials: schemas.UserLogin, db: Session = Depends(get_db)):
         access_token=access_token
     )
 
-@router.get("/me", response_model=schemas.UserBase)
-def get_current_user(user_id: int = Depends(get_current_user_id), db: Session = Depends(get_db)):
-    """Get the currently authenticated user."""
+def _map_price_to_tier(price_id: str | None) -> str:
+    if not price_id:
+        return "free"
+    if price_id == os.getenv("PRICE_MONTHLY"):
+        return "monthly"
+    if price_id == os.getenv("PRICE_ANNUAL"):
+        return "annual"
+    return "free"
+
+
+@router.get("/me", response_model=schemas.UserWithTier)
+async def get_current_user(user_id: int = Depends(get_current_user_id), db: Session = Depends(get_db)):
+    """Get the currently authenticated user along with subscription tier."""
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    return user
+
+    tier = "free"
+
+    # Dev-only override: treat selected users as paid without Stripe
+    try:
+        if os.getenv("DEV_ENABLE_PAID_OVERRIDE", "false").lower() == "true":
+            raw_ids = os.getenv("DEV_PAID_USER_IDS", "")
+            paid_ids = set(int(x.strip()) for x in raw_ids.split(",") if x.strip().isdigit())
+            if not paid_ids:
+                paid_ids = {1}
+            if user.id in paid_ids or (getattr(user, "username", "").lower() == "calvin"):
+                tier = os.getenv("DEV_FORCE_TIER", "annual")
+                data = schemas.UserWithTier.model_validate(user).model_dump()
+                data["tier"] = tier
+                return data
+    except Exception:
+        pass
+    try:
+        # If we know the Stripe customer, check their active subscription via REST
+        if user.stripe_customer_id:
+            r = requests.get(
+                f"{STRIPE_API}/subscriptions",
+                params={
+                    "customer": user.stripe_customer_id,
+                    "status": "all",
+                    "expand[]": "data.items.data.price",
+                },
+                auth=(STRIPE_SECRET_KEY, ""),
+            )
+            if r.status_code < 400:
+                data = r.json().get("data", [])
+                def is_active(s: dict) -> bool:
+                    return s.get("status") in ("active", "trialing", "past_due")
+                active_sub = next((s for s in data if is_active(s)), None)
+                if active_sub:
+                    items = (active_sub.get("items") or {}).get("data") or []
+                    price = items[0].get("price") if items else None
+                    price_id = price.get("id") if price else None
+                    tier = _map_price_to_tier(price_id)
+    except Exception as e:
+        logger.warning(f"Failed to determine tier for user {user_id}: {e}")
+
+    data = schemas.UserWithTier.model_validate(user).model_dump()
+    data["tier"] = tier
+    return data
 
 @router.get("/{user_id}", response_model=schemas.UserBase)
 def get_user(user_id: int, db: Session = Depends(get_db)):

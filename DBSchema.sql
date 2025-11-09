@@ -85,6 +85,7 @@ CREATE TABLE IF NOT EXISTS metrics (
     category VARCHAR(255),
     subcategory VARCHAR(255),
     name VARCHAR(255) NOT NULL,
+    initials VARCHAR(5),
     description TEXT,
     parent_id INT REFERENCES metrics(id) ON DELETE SET NULL,
     is_required BOOLEAN DEFAULT false,

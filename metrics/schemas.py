@@ -5,6 +5,7 @@ from datetime import datetime
 class MetricMini(BaseModel):
     id: int
     name: str
+    initials: str
     data_type: str
     unit: Optional[str] = None
 
@@ -15,6 +16,7 @@ class MetricBase(BaseModel):
     subcategory: Optional[str] = None
     name: str
     description: Optional[str] = None
+    initials: Optional[str] = None
     parent_id: Optional[int] = None
     is_required: bool = False
     data_type: str
@@ -36,6 +38,7 @@ class MetricUpdate(BaseModel):
     subcategory: Optional[str] = None
     name: Optional[str] = None
     description: Optional[str] = None
+    initials: Optional[str] = None
     parent_id: Optional[int] = None
     is_required: Optional[bool] = None
     data_type: Optional[str] = None

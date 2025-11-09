@@ -10,6 +10,7 @@ class Metric(Base):
     subcategory = Column(String(255))
     name = Column(String(255), nullable=False)
     description = Column(Text)
+    initials = Column(String(5))
     parent_id = Column(Integer, ForeignKey("metrics.id", ondelete="SET NULL"))
     is_required = Column(Boolean, default=False)
     data_type = Column(String(255), nullable=False)  # int, boolean, text, scale, decimal

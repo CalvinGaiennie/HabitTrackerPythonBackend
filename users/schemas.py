@@ -1,15 +1,21 @@
 from pydantic import BaseModel, ConfigDict
-from typing import Optional, Dict
+from typing import Optional, Dict, Literal, Any
 from datetime import datetime
 
 class HomePageSection(BaseModel):
     section: str
     metricIds: list[int]
 
+class ChartDefinition(BaseModel):
+    type: Literal["line", "bar", "pie", "bubble", ""]
+    metricId: int
+
 class UserSettings(BaseModel):
     enabledPages: Optional[list[str]] = None
     homePageLayout: Optional[list[HomePageSection]] = None
     workoutTypes: Optional[list[str]] = None
+    # Optional analytics configuration for home page charts
+    homePageAnalytics: Optional[list[ChartDefinition]] = None
 
 class UserCreate(BaseModel):
     username: str
@@ -46,4 +52,9 @@ class UserResponse(BaseModel):
     access_token: str
 
 class UserWithTier(UserBase):
+    tier: str  # "free" | "monthly" | "annual"
+
+class UserWithSettings(UserBase):
+    # Return strongly-typed settings where possible; allow additional keys
+    settings: dict
     tier: str  # "free" | "monthly" | "annual"

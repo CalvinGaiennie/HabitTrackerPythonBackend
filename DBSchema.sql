@@ -125,6 +125,7 @@ CREATE TABLE IF NOT EXISTS daily_logs (
     value_decimal NUMERIC(10,2),
     note TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deleted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE(metric_id, log_date)  -- one entry per metric per day
 );
 

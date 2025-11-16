@@ -107,7 +107,78 @@ def clock_out(metric_id: int, db: Session = Depends(get_db)):
     )
     
     if not db_log:
-        raise HTTPException(status_code=404, detail="No clock in found for today")
+        # Optional hardening: If there is no "today" entry, check yesterday for a running session
+        from datetime import datetime as dt, time as dtime
+        yesterday = today - timedelta(days=1)
+        db_yesterday = (
+            db.query(models.DailyLog)
+            .filter(models.DailyLog.metric_id == metric_id)
+            .filter(models.DailyLog.log_date == yesterday)
+            .first()
+        )
+        if not db_yesterday or not db_yesterday.value_text:
+            raise HTTPException(status_code=404, detail="No clock in found for today")
+        
+        try:
+            y_clock = json.loads(db_yesterday.value_text or "{}")
+        except Exception:
+            y_clock = {}
+        if y_clock.get("current_state") != "clocked_in" or "last_updated" not in y_clock:
+            # No running session to close; behave like original response
+            raise HTTPException(status_code=404, detail="No clock in found for today")
+        
+        # Split the running session across midnight:
+        # - Close yesterday at 00:00 of today (midnight)
+        # - Create a new "today" entry from 00:00 to now
+        midnight_today = dt.combine(today, dtime.min)
+        try:
+            last_in_yesterday = dt.fromisoformat(y_clock["last_updated"])
+        except Exception:
+            last_in_yesterday = midnight_today
+        
+        # Guard against clocks that start after 'now' due to skew
+        if last_in_yesterday > now:
+            last_in_yesterday = now
+        
+        # Portion attributable to yesterday (only if last_in is before midnight)
+        portion_yesterday_minutes = 0
+        if last_in_yesterday < midnight_today:
+            portion_yesterday_minutes = int((midnight_today - last_in_yesterday).total_seconds() / 60)
+            y_sessions = y_clock.get("sessions", [])
+            y_sessions.append({
+                "clock_in": last_in_yesterday.isoformat(),
+                "clock_out": midnight_today.isoformat(),
+                "duration_minutes": portion_yesterday_minutes
+            })
+            y_clock["sessions"] = y_sessions
+            y_clock["current_state"] = "clocked_out"
+            y_clock["total_duration_minutes"] = sum(s.get("duration_minutes", 0) for s in y_sessions)
+            y_clock["last_updated"] = now.isoformat()
+            db_yesterday.value_text = json.dumps(y_clock)
+        
+        # Create today's entry representing the post‑midnight portion
+        portion_today_minutes = int((now - midnight_today).total_seconds() / 60)
+        today_clock = {
+            "current_state": "clocked_out",
+            "sessions": [{
+                "clock_in": midnight_today.isoformat(),
+                "clock_out": now.isoformat(),
+                "duration_minutes": portion_today_minutes
+            }],
+            "total_duration_minutes": portion_today_minutes,
+            "last_updated": now.isoformat()
+        }
+        # Use same user_id as yesterday's row to keep ownership consistent
+        db_today_new = models.DailyLog(
+            user_id=db_yesterday.user_id,
+            metric_id=metric_id,
+            log_date=today,
+            value_text=json.dumps(today_clock)
+        )
+        db.add(db_today_new)
+        db.commit()
+        db.refresh(db_today_new)
+        return today_clock
     
     clock_data = json.loads(db_log.value_text or "{}")
     if clock_data.get("current_state") != "clocked_in":

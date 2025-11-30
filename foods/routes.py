@@ -28,8 +28,3 @@ def create_food(food: schemas.FoodCreate, db: Session = Depends(get_db)):
 @router.get("/", response_model=list[schemas.FoodOut])
 def get_foods(db: Session = Depends(get_db)):
     return db.query(models.Food).all()
-
-
-@router.get("/", response_model=list[schemas.FoodEntry])
-def get_todays_food_entries(db: Session = Depends(get_db)):
-    return db.query(models.Food).all()

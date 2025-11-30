@@ -9,7 +9,7 @@ from foods import routes as foods_routes
 # Import to register the model
 from exercises import routes as exercises_routes
 from exercises import models as exercises_models
-from stripe import routes as stripe_routes
+from payments import routes as stripe_routes
 
 from fastapi.middleware.cors import CORSMiddleware
 import os

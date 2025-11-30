@@ -13,7 +13,7 @@ from sqlalchemy import (
 
 
 class FoodEntry(Base):
-    __tablename__ = "food_entries"
+    __tablename__ = "food_entry"  # matches DBSchema.sql
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)

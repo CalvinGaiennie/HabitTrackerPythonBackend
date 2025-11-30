@@ -5,6 +5,7 @@ from db.session import SessionLocal
 from . import models, schemas
 from typing import List
 import json
+from core.auth import get_current_user_id
 
 router = APIRouter(prefix="/workouts", tags=["workouts"])
 
@@ -16,7 +17,11 @@ def get_db():
         db.close()
 
 @router.post("/", response_model=schemas.WorkoutOut)
-def create_workout(workout: schemas.WorkoutCreate, db: Session = Depends(get_db)):
+def create_workout(
+    workout: schemas.WorkoutCreate,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id),
+):
     # Store exercises as native JSON (list of dicts); SQLAlchemy JSON will serialize
     exercises_payload = None
     if workout.exercises:
@@ -24,12 +29,12 @@ def create_workout(workout: schemas.WorkoutCreate, db: Session = Depends(get_db)
 
     # Delete any existing draft when creating a real workout
     db.query(models.Workout).filter(
-        models.Workout.user_id == 1,
+        models.Workout.user_id == user_id,
         models.Workout.is_draft == True
     ).delete()
 
     db_workout = models.Workout(
-        user_id=1,  # TODO: Get from auth
+        user_id=user_id,
         title=workout.title,
         workout_types=workout.workout_types,
         notes=workout.notes,
@@ -42,10 +47,10 @@ def create_workout(workout: schemas.WorkoutCreate, db: Session = Depends(get_db)
     return db_workout
 
 @router.get("/draft", response_model=schemas.WorkoutOut)
-def get_draft(db: Session = Depends(get_db)):
+def get_draft(db: Session = Depends(get_db), user_id: int = Depends(get_current_user_id)):
     """Get the user's current workout draft"""
     draft = db.query(models.Workout).filter(
-        models.Workout.user_id == 1,  # TODO: Get from auth
+        models.Workout.user_id == user_id,
         models.Workout.is_draft == True
     ).first()
     
@@ -62,7 +67,11 @@ def get_draft(db: Session = Depends(get_db)):
     return draft
 
 @router.post("/draft", response_model=schemas.WorkoutOut)
-def save_draft(workout: schemas.WorkoutCreate, db: Session = Depends(get_db)):
+def save_draft(
+    workout: schemas.WorkoutCreate,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id),
+):
     """Save or update the workout draft"""
     exercises_payload = None
     if workout.exercises:
@@ -70,7 +79,7 @@ def save_draft(workout: schemas.WorkoutCreate, db: Session = Depends(get_db)):
     
     # Check if draft already exists
     existing_draft = db.query(models.Workout).filter(
-        models.Workout.user_id == 1,  # TODO: Get from auth
+        models.Workout.user_id == user_id,
         models.Workout.is_draft == True
     ).first()
     
@@ -86,7 +95,7 @@ def save_draft(workout: schemas.WorkoutCreate, db: Session = Depends(get_db)):
     else:
         # Create new draft
         db_draft = models.Workout(
-            user_id=1,  # TODO: Get from auth
+            user_id=user_id,
             title=workout.title,
             workout_types=workout.workout_types,
             notes=workout.notes,
@@ -99,9 +108,9 @@ def save_draft(workout: schemas.WorkoutCreate, db: Session = Depends(get_db)):
         return db_draft
 
 @router.get("/", response_model=List[schemas.WorkoutOut])
-def get_workouts(db: Session = Depends(get_db)):
+def get_workouts(db: Session = Depends(get_db), user_id: int = Depends(get_current_user_id)):
     workouts = db.query(models.Workout).filter(
-        models.Workout.user_id == 1,
+        models.Workout.user_id == user_id,
         models.Workout.is_draft == False,  # Exclude drafts from workout list
         models.Workout.deleted_at.is_(None)  # Only get active (non-deleted) workouts
     ).all()
@@ -115,10 +124,10 @@ def get_workouts(db: Session = Depends(get_db)):
     return workouts
 
 @router.get("/{workout_id}", response_model=schemas.WorkoutOut)
-def get_workout(workout_id: int, db: Session = Depends(get_db)):
+def get_workout(workout_id: int, db: Session = Depends(get_db), user_id: int = Depends(get_current_user_id)):
     workout = db.query(models.Workout).filter(
         models.Workout.id == workout_id,
-        models.Workout.user_id == 1,
+        models.Workout.user_id == user_id,
         models.Workout.deleted_at.is_(None)  # Only get active workouts
     ).first()
     if not workout:
@@ -132,10 +141,15 @@ def get_workout(workout_id: int, db: Session = Depends(get_db)):
     return workout
 
 @router.patch("/{workout_id}", response_model=schemas.WorkoutOut)
-def update_workout(workout_id: int, workout_update: schemas.WorkoutUpdate, db: Session = Depends(get_db)):
+def update_workout(
+    workout_id: int,
+    workout_update: schemas.WorkoutUpdate,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id),
+):
     workout = db.query(models.Workout).filter(
         models.Workout.id == workout_id,
-        models.Workout.user_id == 1,
+        models.Workout.user_id == user_id,
         models.Workout.deleted_at.is_(None)  # Only allow updating active workouts
     ).first()
     
@@ -157,10 +171,10 @@ def update_workout(workout_id: int, workout_update: schemas.WorkoutUpdate, db: S
     return workout
 
 @router.delete("/{workout_id}")
-def delete_workout(workout_id: int, db: Session = Depends(get_db)):
+def delete_workout(workout_id: int, db: Session = Depends(get_db), user_id: int = Depends(get_current_user_id)):
     workout = db.query(models.Workout).filter(
         models.Workout.id == workout_id,
-        models.Workout.user_id == 1,
+        models.Workout.user_id == user_id,
         models.Workout.deleted_at.is_(None)  # Only allow deleting active workouts
     ).first()
     

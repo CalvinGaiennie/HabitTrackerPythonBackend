@@ -6,6 +6,7 @@ from datetime import date, datetime, timedelta
 from typing import Optional
 import json
 from .utils.clock import parse_clock_data
+from core.auth import get_current_user_id
 
 router = APIRouter(prefix="/daily_logs", tags=["daily_logs"])
 
@@ -17,9 +18,14 @@ def get_db():
         db.close()
 
 @router.post("/", response_model=schemas.DailyLogOut)
-def create_or_update_log(log: schemas.DailyLogCreate, db: Session = Depends(get_db)):
+def create_or_update_log(
+    log: schemas.DailyLogCreate,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id),
+):
     db_log = (
         db.query(models.DailyLog)
+        .filter(models.DailyLog.user_id == user_id)
         .filter(models.DailyLog.metric_id == log.metric_id)
         .filter(models.DailyLog.log_date == log.log_date)
         .first()
@@ -29,8 +35,10 @@ def create_or_update_log(log: schemas.DailyLogCreate, db: Session = Depends(get_
         for field, value in log.model_dump(exclude_unset=True).items():
             setattr(db_log, field, value)
 
-    else: 
-        db_log = models.DailyLog(**log.model_dump())
+    else:
+        # Force user ownership to the authenticated user
+        payload = {**log.model_dump(), "user_id": user_id}
+        db_log = models.DailyLog(**payload)
         db.add(db_log)
 
     db.commit()
@@ -39,8 +47,17 @@ def create_or_update_log(log: schemas.DailyLogCreate, db: Session = Depends(get_
 
 
 @router.get("/", response_model=list[schemas.DailyLogOut])
-def get_daily_logs(start_date: Optional[date] = None, end_date: Optional[date] = None, log_date: Optional[date] = None, user_id: str = None, db: Session = Depends(get_db)):
-    query = db.query(models.DailyLog).filter(models.DailyLog.deleted_at.is_(None))  # Filter out soft-deleted logs
+def get_daily_logs(
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+    log_date: Optional[date] = None,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id),
+):
+    query = db.query(models.DailyLog).filter(
+        models.DailyLog.deleted_at.is_(None),
+        models.DailyLog.user_id == user_id,
+    )  # Filter out soft-deleted logs and scope to user
     if log_date:
         query = query.filter(models.DailyLog.log_date == log_date)
     else:
@@ -48,18 +65,17 @@ def get_daily_logs(start_date: Optional[date] = None, end_date: Optional[date] =
             query = query.filter(models.DailyLog.log_date >= start_date)
         if end_date:
             query = query.filter(models.DailyLog.log_date <= end_date)
-    if user_id:
-        query = query.filter(models.DailyLog.user_id == user_id)  # Add user_id filter
     return query.order_by(models.DailyLog.log_date.desc()).all()
 
 @router.post("/clock-in")
-def clock_in(metric_id: int, db: Session = Depends(get_db)):
+def clock_in(metric_id: int, db: Session = Depends(get_db), user_id: int = Depends(get_current_user_id)):
     today = date.today()
     now = datetime.now()
     
     # Get or create today's log entry
     db_log = (
         db.query(models.DailyLog)
+        .filter(models.DailyLog.user_id == user_id)
         .filter(models.DailyLog.metric_id == metric_id)
         .filter(models.DailyLog.log_date == today)
         .first()
@@ -68,7 +84,7 @@ def clock_in(metric_id: int, db: Session = Depends(get_db)):
     if not db_log:
         # Create new log entry
         db_log = models.DailyLog(
-            user_id=1,  # TODO: Get from auth
+            user_id=user_id,
             metric_id=metric_id,
             log_date=today,
             value_text=json.dumps({
@@ -94,13 +110,14 @@ def clock_in(metric_id: int, db: Session = Depends(get_db)):
     return json.loads(db_log.value_text)
 
 @router.post("/clock-out")
-def clock_out(metric_id: int, db: Session = Depends(get_db)):
+def clock_out(metric_id: int, db: Session = Depends(get_db), user_id: int = Depends(get_current_user_id)):
     today = date.today()
     now = datetime.now()
     
     # Get today's log entry
     db_log = (
         db.query(models.DailyLog)
+        .filter(models.DailyLog.user_id == user_id)
         .filter(models.DailyLog.metric_id == metric_id)
         .filter(models.DailyLog.log_date == today)
         .first()
@@ -112,6 +129,7 @@ def clock_out(metric_id: int, db: Session = Depends(get_db)):
         yesterday = today - timedelta(days=1)
         db_yesterday = (
             db.query(models.DailyLog)
+            .filter(models.DailyLog.user_id == user_id)
             .filter(models.DailyLog.metric_id == metric_id)
             .filter(models.DailyLog.log_date == yesterday)
             .first()
@@ -170,7 +188,7 @@ def clock_out(metric_id: int, db: Session = Depends(get_db)):
         }
         # Use same user_id as yesterday's row to keep ownership consistent
         db_today_new = models.DailyLog(
-            user_id=db_yesterday.user_id,
+            user_id=user_id,
             metric_id=metric_id,
             log_date=today,
             value_text=json.dumps(today_clock)

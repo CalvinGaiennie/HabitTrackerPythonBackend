@@ -19,5 +19,3 @@ class FoodEntryCreate(BaseModel):
 
 class FoodEntryOut(FoodEntryCreate):
     id: int
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None

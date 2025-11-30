@@ -7,6 +7,7 @@ from db.session import SessionLocal
 from . import models
 from users import models as user_models
 from core.auth import get_current_user_id
+from typing import Any, Dict
 
 # ------------------------------------------------------------------
 # Router
@@ -53,15 +54,24 @@ async def create_checkout_session(
         raise HTTPException(status_code=400, detail="Invalid tier")
 
     try:
+        # If the user already has a Stripe customer, attach it so they don't create duplicates
+        user = db.query(user_models.User).filter(user_models.User.id == user_id).first()
+        existing_customer_id = getattr(user, "stripe_customer_id", None) if user else None
+
         form = {
             "mode": "subscription",
             "success_url": f"{os.getenv('DOMAIN')}/success",
             "cancel_url": f"{os.getenv('DOMAIN')}/cancel",
             "client_reference_id": str(user_id),
             "metadata[tier]": tier,
+            # Persist tier on the subscription for later lookups
+            "subscription_data[metadata][tier]": tier,
             "line_items[0][price]": price_id,
             "line_items[0][quantity]": "1",
         }
+        if existing_customer_id:
+            form["customer"] = existing_customer_id
+
         r = requests.post(f"{STRIPE_API}/checkout/sessions", data=form, auth=(STRIPE_SECRET_KEY, ""))
         if r.status_code >= 400:
             raise HTTPException(status_code=500, detail=r.text)
@@ -79,7 +89,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     payload = await request.body()
     # NOTE: In dev we're not verifying signature to avoid SDK dependency
     try:
-        event = request.json()
+        event = await request.json()
     except Exception:
         import json
         event = json.loads(payload)
@@ -90,17 +100,17 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     event_type = event.get("type")
     if event_type == "checkout.session.completed":
         # Session just finished → create a pending record (optional)
-        session = event["data"]["object"]
-        await _handle_session_completed(session, db)
+        session_obj = event.get("data", {}).get("object") or {}
+        await _handle_session_completed(session_obj, db)
 
     elif event_type == "invoice.paid":
         # Payment succeeded → grant access
-        invoice = event["data"]["object"]
+        invoice = event.get("data", {}).get("object") or {}
         await _grant_subscription(invoice, db)
 
     elif event_type in ("invoice.payment_failed", "customer.subscription.deleted"):
         # Revoke access
-        invoice = event["data"]["object"]
+        invoice = event.get("data", {}).get("object") or {}
         await _revoke_subscription(invoice, db)
 
     return JSONResponse({"status": "success"})
@@ -121,11 +131,15 @@ async def create_portal_session(
         raise HTTPException(status_code=400, detail="No Stripe customer linked")
 
     try:
-        session = stripe.billing_portal.Session.create(
-            customer=user.stripe_customer_id,
-            return_url=f"{os.getenv('DOMAIN')}/Account",
-        )
-        return {"url": session.url}
+        form = {
+            "customer": user.stripe_customer_id,
+            "return_url": f"{os.getenv('DOMAIN')}/Account",
+        }
+        r = requests.post(f"{STRIPE_API}/billing_portal/sessions", data=form, auth=(STRIPE_SECRET_KEY, ""))
+        if r.status_code >= 400:
+            raise HTTPException(status_code=500, detail=r.text)
+        data = r.json()
+        return {"url": data.get("url")}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -134,9 +148,11 @@ async def create_portal_session(
 # Helper: session completed (store customer + tier)
 # ------------------------------------------------------------------
 async def _handle_session_completed(session_obj, db: Session):
-    customer_id = session_obj.customer
-    tier = session_obj.metadata.get("tier")
-    client_reference_id = session_obj.client_reference_id  # our user_id
+    # session_obj comes as a dict from the webhook payload
+    customer_id = session_obj.get("customer")
+    metadata: Dict[str, Any] = session_obj.get("metadata") or {}
+    tier = metadata.get("tier")
+    client_reference_id = session_obj.get("client_reference_id")  # our user_id
 
     # Link Stripe customer to our user
     try:

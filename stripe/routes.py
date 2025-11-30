@@ -8,6 +8,7 @@ from . import models
 from users import models as user_models
 from core.auth import get_current_user_id
 from typing import Any, Dict
+import stripe
 
 # ------------------------------------------------------------------
 # Router
@@ -19,6 +20,10 @@ router = APIRouter(prefix="/stripe", tags=["stripe"])
 # ------------------------------------------------------------------
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
 STRIPE_API = "https://api.stripe.com/v1"
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
+
+if STRIPE_SECRET_KEY:
+    stripe.api_key = STRIPE_SECRET_KEY
 
 # ------------------------------------------------------------------
 # DB dependency
@@ -87,12 +92,26 @@ async def create_checkout_session(
 @router.post("/webhook")
 async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     payload = await request.body()
-    # NOTE: In dev we're not verifying signature to avoid SDK dependency
-    try:
-        event = await request.json()
-    except Exception:
-        import json
-        event = json.loads(payload)
+    # If a webhook secret is configured, verify the signature
+    if STRIPE_WEBHOOK_SECRET:
+        sig_header = request.headers.get("stripe-signature", "")
+        try:
+            event = stripe.Webhook.construct_event(
+                payload=payload,
+                sig_header=sig_header,
+                secret=STRIPE_WEBHOOK_SECRET,
+            )
+        except stripe.error.SignatureVerificationError:
+            raise HTTPException(status_code=400, detail="Invalid Stripe signature")
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Webhook error: {e}")
+    else:
+        # Fallback without verification (dev only)
+        try:
+            event = await request.json()
+        except Exception:
+            import json
+            event = json.loads(payload)
 
     # ------------------------------------------------------------------
     # Handle relevant events

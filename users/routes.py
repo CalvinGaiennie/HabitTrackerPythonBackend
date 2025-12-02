@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from . import models, schemas
 from db.session import SessionLocal
 from core.auth import hash_password, verify_password, create_access_token, get_current_user_id
@@ -49,7 +50,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=schemas.UserResponse)
 def login(credentials: schemas.UserLogin, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.email == credentials.email).first()
+    user = db.query(models.User).filter(func.lower(models.User.email) == credentials.email.lower()).first()
     
     if not user:
         raise HTTPException(status_code=401, detail="No user found with this email")

@@ -217,3 +217,4 @@ def test_full_crud_smoke():
     assert len(r.json()) >= 1
 
 
+

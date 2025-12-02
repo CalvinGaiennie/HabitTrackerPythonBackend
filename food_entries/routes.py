@@ -29,7 +29,7 @@ def create_food_entry(
     return db_entry
 
 @router.get("/", response_model=list[schemas.FoodEntryOut])
-def list_food_entries(
+def get_food_entries(
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
     log_date: Optional[date] = None,

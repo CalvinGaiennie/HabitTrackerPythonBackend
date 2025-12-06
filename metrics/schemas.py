@@ -8,6 +8,7 @@ class MetricMini(BaseModel):
     initials: str
     data_type: str
     unit: Optional[str] = None
+    time_type: str
 
     model_config = {"from_attributes": True}
 
@@ -27,6 +28,7 @@ class MetricBase(BaseModel):
     modifier_value: Optional[str] = None
     notes_on: bool = False
     active: bool = True
+    time_type: str
 
     model_config = {"from_attributes": True}
 

@@ -23,3 +23,4 @@ class Metric(Base):
     active = Column(Boolean, default=True)
     created_at = Column(TIMESTAMP, server_default=text("now()"))
     updated_at = Column(TIMESTAMP, server_default=text("now()"))
+    time_type = Column(String(255))

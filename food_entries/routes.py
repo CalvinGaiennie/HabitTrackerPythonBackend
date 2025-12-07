@@ -21,7 +21,8 @@ def create_food_entry(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id),
 ):
-    payload = {**food_entry.model_dump(), "user_id": user_id}
+    payload = food_entry.model_dump()
+    payload["user_id"] = user_id
     db_entry = models.FoodEntry(**payload)
     db.add(db_entry)
     db.commit()

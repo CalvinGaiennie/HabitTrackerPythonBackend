@@ -1,12 +1,12 @@
 from pydantic import BaseModel
-from datetime import date
+from datetime import date, datetime
 from typing import Optional
 from decimal import Decimal
 
 
 class FoodEntryCreate(BaseModel):
-    user_id: int
     food_id: Optional[int] = None
+    food_name: str
     log_date: date
     quantity: Decimal = Decimal("1")
     calories: Optional[Decimal] = None
@@ -19,3 +19,5 @@ class FoodEntryCreate(BaseModel):
 
 class FoodEntryOut(FoodEntryCreate):
     id: int
+    user_id: int
+    created_at: datetime

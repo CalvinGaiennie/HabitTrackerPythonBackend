@@ -4,6 +4,7 @@ from sqlalchemy import func
 from . import models, schemas
 from db.session import SessionLocal
 from core.auth import hash_password, verify_password, create_access_token, get_current_user_id
+from core.tier import get_user_tier
 import logging
 import os
 import requests
@@ -157,6 +158,20 @@ def update_user(
     
     existing_settings = user.settings or {}
     new_settings = user_settings.model_dump(exclude_unset=True)
+
+    # Enforce free-tier: only 1 homepage chart allowed
+    tier = get_user_tier(db, user)
+    if tier == "free":
+        if "homePageAnalytics" in new_settings:
+            charts = new_settings.get("homePageAnalytics") or []
+            if isinstance(charts, list) and len(charts) > 1:
+                raise HTTPException(
+                    status_code=403,
+                    detail={
+                        "code": "limit.homepage.charts",
+                        "message": "Free plan limit: one homepage chart. Upgrade to add more.",
+                    },
+                )
     merged_settings = {**existing_settings, **new_settings}
     
     user.settings = merged_settings

@@ -13,20 +13,18 @@ def get_db():
     finally:
         db.close()
 
-@router.post("/", response_model=schemas.ExerciseOut)
+@router.post("/", response_model=schemas.ExerciseCreate)
 def create_exercise(
     exercise: schemas.ExerciseCreate,
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id),
 ):
-    # Do not trust/accept user_id from the client payload; always use auth user_id
-    payload = exercise.model_dump(exclude={"user_id"})
-    db_exercise = models.ExerciseFull(**payload, user_id=user_id)
+    db_exercise = models.ExerciseFull(**exercise.model_dump(), user_id=user_id)
     db.add(db_exercise)
     db.commit()
     db.refresh(db_exercise)
     return db_exercise 
 
-@router.get("/", response_model=list[schemas.ExerciseOut])
+@router.get("/", response_model=list[schemas.ExerciseCreate])
 def get_exercises(db: Session = Depends(get_db), user_id: int = Depends(get_current_user_id)):
     return db.query(models.ExerciseFull).filter(models.ExerciseFull.user_id == user_id).all()

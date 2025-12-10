@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from . import models, schemas
 from db.session import SessionLocal
 from core.auth import get_current_user_id
+from users import models as user_models
+from core.tier import get_user_tier
 
 
 router = APIRouter(prefix="/metrics", tags=["metrics"])
@@ -20,6 +22,21 @@ def create_metric(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id),
 ):
+    # Enforce free-tier limit: max 4 metrics total
+    user = db.query(user_models.User).filter(user_models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    tier = get_user_tier(db, user)
+    if tier == "free":
+        existing_count = db.query(models.Metric).filter(models.Metric.user_id == user_id).count()
+        if existing_count >= 4:
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "code": "limit.metrics.max",
+                    "message": "Free plan limit: max 4 metrics. Upgrade to add more.",
+                },
+            )
     db_metric = models.Metric(**metric.model_dump(), user_id=user_id)
     db.add(db_metric)
     db.commit()

@@ -5,7 +5,7 @@ from datetime import datetime
 class MetricMini(BaseModel):
     id: int
     name: str
-    initials: str
+    initials: Optional[str] = None
     data_type: str
     unit: Optional[str] = None
     time_type: str

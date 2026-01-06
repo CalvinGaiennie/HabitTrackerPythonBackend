@@ -19,7 +19,11 @@ def create_exercise(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id),
 ):
-    db_exercise = models.ExerciseFull(**exercise.model_dump(), user_id=user_id)
+    # Exclude user_id from model_dump to avoid duplicate argument error
+    # since we're also passing user_id=user_id explicitly
+    exercise_dict = exercise.model_dump()
+    exercise_dict.pop('user_id', None)  # Remove user_id if present
+    db_exercise = models.ExerciseFull(**exercise_dict, user_id=user_id)
     db.add(db_exercise)
     db.commit()
     db.refresh(db_exercise)

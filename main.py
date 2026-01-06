@@ -11,6 +11,8 @@ from exercises import routes as exercises_routes
 from exercises import models as exercises_models
 from payments import routes as stripe_routes
 from food_entries import routes as food_entries_routes
+from reminders import routes as reminders_routes
+from reminders import models as reminders_models
 
 from fastapi.middleware.cors import CORSMiddleware
 import os
@@ -100,6 +102,7 @@ app.include_router(exercises_routes.router)
 app.include_router(foods_routes.router)
 app.include_router(stripe_routes.router)
 app.include_router(food_entries_routes.router)
+app.include_router(reminders_routes.router)
 
 
 # CORS middleware (allows all localhost ports for development)

@@ -8,7 +8,7 @@ from typing import List
 import json
 from core.auth import get_current_user_id
 from users import models as user_models
-from core.tier import get_user_tier
+from core.tier import get_user_tier, should_bypass_tier_restrictions
 
 router = APIRouter(prefix="/workouts", tags=["workouts"])
 
@@ -29,23 +29,29 @@ def create_workout(
     user = db.query(user_models.User).filter(user_models.User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    tier = get_user_tier(db, user)
-    if tier == "free":
-        today_count = (
-            db.query(models.Workout)
-            .filter(models.Workout.user_id == user_id)
-            .filter(models.Workout.is_draft.is_(False))
-            .filter(func.date(models.Workout.started_at) == func.current_date())
-            .count()
-        )
-        if today_count >= 1:
-            raise HTTPException(
-                status_code=403,
-                detail={
-                    "code": "limit.workouts.daily",
-                    "message": "Free plan limit: one workout per day. Upgrade for unlimited.",
-                },
+    
+    # Check if user bypasses tier restrictions
+    if should_bypass_tier_restrictions(user):
+        # User bypasses restrictions - skip tier limit check
+        pass
+    else:
+        tier = get_user_tier(db, user)
+        if tier == "free":
+            today_count = (
+                db.query(models.Workout)
+                .filter(models.Workout.user_id == user_id)
+                .filter(models.Workout.is_draft.is_(False))
+                .filter(func.date(models.Workout.started_at) == func.current_date())
+                .count()
             )
+            if today_count >= 1:
+                raise HTTPException(
+                    status_code=403,
+                    detail={
+                        "code": "limit.workouts.daily",
+                        "message": "Free plan limit: one workout per day. Upgrade for unlimited.",
+                    },
+                )
     # Store exercises as native JSON (list of dicts); SQLAlchemy JSON will serialize
     exercises_payload = None
     if workout.exercises:

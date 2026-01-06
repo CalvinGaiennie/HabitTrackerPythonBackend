@@ -67,6 +67,17 @@ def get_daily_logs(
             query = query.filter(models.DailyLog.log_date <= end_date)
     return query.order_by(models.DailyLog.log_date.desc()).all()
 
+# Support no-trailing-slash path to avoid 307 redirect (some clients drop Authorization on redirect)
+@router.get("", response_model=list[schemas.DailyLogOut])
+def get_daily_logs_no_slash(
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+    log_date: Optional[date] = None,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id),
+):
+    return get_daily_logs(start_date=start_date, end_date=end_date, log_date=log_date, db=db, user_id=user_id)
+
 @router.post("/clock-in")
 def clock_in(metric_id: int, db: Session = Depends(get_db), user_id: int = Depends(get_current_user_id)):
     today = date.today()

@@ -10,6 +10,43 @@ logger = logging.getLogger(__name__)
 STRIPE_API = "https://api.stripe.com/v1"
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
 
+# Tier restriction bypass list - users in this list bypass ALL tier restrictions
+# Add user IDs or emails here to bypass restrictions
+TIER_BYPASS_USER_IDS = [
+    # Add user IDs here, e.g.:
+    # 1,
+    # 42,
+]
+
+TIER_BYPASS_USER_EMAILS = [
+    # Add user emails here (lowercase), e.g.:
+    # "admin@example.com",
+    # "test@example.com",
+]
+
+# Development mode: bypass ALL users (set to True to bypass for everyone)
+TIER_BYPASS_DEVELOPMENT_MODE = True
+
+
+def should_bypass_tier_restrictions(user: user_models.User) -> bool:
+    """
+    Check if a user should bypass tier restrictions.
+    Returns True if user is in bypass list or development mode is enabled.
+    """
+    # Development mode: bypass all users
+    if TIER_BYPASS_DEVELOPMENT_MODE:
+        return True
+    
+    # Check by user ID
+    if user.id in TIER_BYPASS_USER_IDS:
+        return True
+    
+    # Check by email (case-insensitive)
+    if user.email.lower() in [email.lower() for email in TIER_BYPASS_USER_EMAILS]:
+        return True
+    
+    return False
+
 
 def _map_price_to_tier(price_id: Optional[str]) -> str:
     if not price_id:
@@ -30,6 +67,14 @@ def get_user_tier(db: Session, user: user_models.User) -> str:
     """
     # Default
     tier = "free"
+
+    # Hard bypass: user ids 1-10 are always considered paid (annual)
+    try:
+        uid = getattr(user, "id", None)
+        if isinstance(uid, int) and 1 <= uid <= 10:
+            return "annual"
+    except Exception:
+        pass
 
     # Dev override
     try:

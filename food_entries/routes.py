@@ -6,7 +6,7 @@ from datetime import date
 from typing import Optional
 from core.auth import get_current_user_id
 from users import models as user_models
-from core.tier import get_user_tier
+from core.tier import get_user_tier, should_bypass_tier_restrictions
 
 router = APIRouter(prefix="/food_entries", tags=["food_entries"])
 
@@ -27,22 +27,28 @@ def create_food_entry(
     user = db.query(user_models.User).filter(user_models.User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    tier = get_user_tier(db, user)
-    if tier == "free":
-        day_count = (
-            db.query(models.FoodEntry)
-            .filter(models.FoodEntry.user_id == user_id)
-            .filter(models.FoodEntry.log_date == food_entry.log_date)
-            .count()
-        )
-        if day_count >= 3:
-            raise HTTPException(
-                status_code=403,
-                detail={
-                    "code": "limit.food_entries.daily",
-                    "message": "Free plan limit: max 3 food logs per day. Upgrade to add more.",
-                },
+    
+    # Check if user bypasses tier restrictions
+    if should_bypass_tier_restrictions(user):
+        # User bypasses restrictions - skip tier limit check
+        pass
+    else:
+        tier = get_user_tier(db, user)
+        if tier == "free":
+            day_count = (
+                db.query(models.FoodEntry)
+                .filter(models.FoodEntry.user_id == user_id)
+                .filter(models.FoodEntry.log_date == food_entry.log_date)
+                .count()
             )
+            if day_count >= 3:
+                raise HTTPException(
+                    status_code=403,
+                    detail={
+                        "code": "limit.food_entries.daily",
+                        "message": "Free plan limit: max 3 food logs per day. Upgrade to add more.",
+                    },
+                )
     payload = food_entry.model_dump()
     payload["user_id"] = user_id
     db_entry = models.FoodEntry(**payload)

@@ -4,7 +4,7 @@ from . import models, schemas
 from db.session import SessionLocal
 from core.auth import get_current_user_id
 from users import models as user_models
-from core.tier import get_user_tier
+from core.tier import get_user_tier, should_bypass_tier_restrictions
 
 
 router = APIRouter(prefix="/metrics", tags=["metrics"])
@@ -26,17 +26,23 @@ def create_metric(
     user = db.query(user_models.User).filter(user_models.User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    tier = get_user_tier(db, user)
-    if tier == "free":
-        existing_count = db.query(models.Metric).filter(models.Metric.user_id == user_id).count()
-        if existing_count >= 4:
-            raise HTTPException(
-                status_code=403,
-                detail={
-                    "code": "limit.metrics.max",
-                    "message": "Free plan limit: max 4 metrics. Upgrade to add more.",
-                },
-            )
+    
+    # Check if user bypasses tier restrictions
+    if should_bypass_tier_restrictions(user):
+        # User bypasses restrictions - skip tier limit check
+        pass
+    else:
+        tier = get_user_tier(db, user)
+        if tier == "free":
+            existing_count = db.query(models.Metric).filter(models.Metric.user_id == user_id).count()
+            if existing_count >= 4:
+                raise HTTPException(
+                    status_code=403,
+                    detail={
+                        "code": "limit.metrics.max",
+                        "message": "Free plan limit: max 4 metrics. Upgrade to add more.",
+                    },
+                )
     db_metric = models.Metric(**metric.model_dump(), user_id=user_id)
     db.add(db_metric)
     db.commit()

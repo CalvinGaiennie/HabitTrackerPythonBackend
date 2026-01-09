@@ -67,6 +67,15 @@ def get_active_metrics(db: Session = Depends(get_db), user_id: int = Depends(get
         .all()
     )
 
+@router.get("/all", response_model=list[schemas.MetricOut])
+def get_all_metrics(db: Session = Depends(get_db), user_id: int = Depends(get_current_user_id)):
+    """Get all metrics including inactive ones (for management pages)"""
+    return (
+        db.query(models.Metric)
+        .filter(models.Metric.user_id == user_id)
+        .all()
+    )
+
 
 @router.patch("/{metric_id}/activate", response_model=schemas.MetricOut)
 def update_metric_activate(

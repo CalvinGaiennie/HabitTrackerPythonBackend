@@ -327,8 +327,10 @@ def request_password_reset(
     # Generate reset token
     reset_token = create_password_reset_token(user.id)
     
-    # Get frontend URL from settings
-    frontend_url = settings.API_ORIGINS.replace("/api", "").rstrip("/") if hasattr(settings, "API_ORIGINS") else "http://localhost:5173"
+    # Get frontend URL from settings (use FRONTEND_URL if set, otherwise fallback to API_ORIGINS)
+    frontend_url = getattr(settings, "FRONTEND_URL", None) or getattr(settings, "API_ORIGINS", "http://localhost:5173")
+    # Remove trailing slashes and any /api suffix
+    frontend_url = frontend_url.replace("/api", "").rstrip("/")
     
     # Send email
     email_sent = send_password_reset_email(user.email, reset_token, frontend_url)

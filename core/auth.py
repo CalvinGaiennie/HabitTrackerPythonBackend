@@ -49,3 +49,22 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Security(sec
         raise HTTPException(status_code=401, detail="Invalid authentication credentials")
     return user_id
 
+def create_password_reset_token(user_id: int) -> str:
+    """Create a short-lived JWT token for password reset (expires in 1 hour)."""
+    data = {"user_id": user_id, "type": "password_reset"}
+    expires_delta = timedelta(hours=1)
+    return create_access_token(data, expires_delta)
+
+def decode_password_reset_token(token: str) -> dict:
+    """Decode and verify a password reset token."""
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=["HS256"])
+        # Verify it's a password reset token
+        if payload.get("type") != "password_reset":
+            raise HTTPException(status_code=401, detail="Invalid token type")
+        return payload
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Reset token has expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid reset token")
+

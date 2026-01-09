@@ -33,6 +33,13 @@ class PasswordChange(BaseModel):
     old_password: str
     new_password: str
 
+class PasswordResetRequest(BaseModel):
+    email: str
+
+class PasswordReset(BaseModel):
+    token: str
+    new_password: str
+
 class UserBase(BaseModel):
     id: int
     settings: dict

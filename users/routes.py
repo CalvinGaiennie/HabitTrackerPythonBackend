@@ -1,9 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from . import models, schemas
 from db.session import SessionLocal
-from core.auth import hash_password, verify_password, create_access_token, get_current_user_id
+from core.auth import hash_password, verify_password, create_access_token, get_current_user_id, create_password_reset_token, decode_password_reset_token
+from core.email import send_password_reset_email
+from core.rate_limit import check_rate_limit
+from config import settings
 from core.tier import get_user_tier, should_bypass_tier_restrictions
 import logging
 import os
@@ -292,3 +295,86 @@ def change_password(
     db.commit()
     
     return {"message": "Password changed successfully"}
+
+@router.post("/request-password-reset")
+def request_password_reset(
+    reset_request: schemas.PasswordResetRequest,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    Request a password reset. Sends an email with a reset link.
+    For security, always returns success even if email doesn't exist.
+    Rate limited: 3 requests per email per hour, 5 requests per IP per hour.
+    """
+    # Get client IP address
+    client_ip = request.client.host if request.client else "unknown"
+    
+    # Check rate limits (both IP and email)
+    is_allowed, rate_limit_message = check_rate_limit(client_ip, reset_request.email)
+    if not is_allowed:
+        logger.warning(f"Rate limit exceeded - IP: {client_ip}, Email: {reset_request.email}")
+        # Still return generic message to prevent enumeration
+        return {"message": "If that email exists, a password reset link has been sent."}
+    
+    user = db.query(models.User).filter(func.lower(models.User.email) == reset_request.email.lower()).first()
+    
+    # Always return success to prevent email enumeration attacks
+    if not user:
+        logger.info(f"Password reset requested for non-existent email: {reset_request.email}")
+        return {"message": "If that email exists, a password reset link has been sent."}
+    
+    # Generate reset token
+    reset_token = create_password_reset_token(user.id)
+    
+    # Get frontend URL from settings
+    frontend_url = settings.API_ORIGINS.replace("/api", "").rstrip("/") if hasattr(settings, "API_ORIGINS") else "http://localhost:5173"
+    
+    # Send email
+    email_sent = send_password_reset_email(user.email, reset_token, frontend_url)
+    
+    if email_sent:
+        logger.info(f"Password reset email sent to {user.email} (IP: {client_ip})")
+        return {"message": "If that email exists, a password reset link has been sent."}
+    else:
+        logger.error(f"Failed to send password reset email to {user.email}")
+        # Still return success to prevent email enumeration
+        return {"message": "If that email exists, a password reset link has been sent."}
+
+@router.post("/reset-password")
+def reset_password(
+    reset_data: schemas.PasswordReset,
+    db: Session = Depends(get_db)
+):
+    """
+    Reset password using a reset token from the email link.
+    """
+    try:
+        # Decode and verify the reset token
+        payload = decode_password_reset_token(reset_data.token)
+        user_id = payload.get("user_id")
+        
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid reset token")
+        
+        # Find user
+        user = db.query(models.User).filter(models.User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Validate password length
+        if len(reset_data.new_password) < 8:
+            raise HTTPException(status_code=400, detail="Password must be at least 8 characters long")
+        
+        # Update password
+        user.password_hash = hash_password(reset_data.new_password)
+        db.commit()
+        
+        logger.info(f"Password reset successful for user {user.id}")
+        return {"message": "Password has been reset successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error resetting password: {e}")
+        raise HTTPException(status_code=401, detail="Invalid or expired reset token")

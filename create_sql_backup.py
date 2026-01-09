@@ -31,10 +31,11 @@ def create_sql_backup():
     try:
         # Load .env
         load_dotenv('.env')
-        prod_url = os.getenv('PRODUCTION_ENV')
+        # Try multiple possible env var names
+        prod_url = os.getenv('PRODUCTION_ENV') or os.getenv('PRODUCTION_DATABASE_URL')
         
         if not prod_url:
-            print("❌ PRODUCTION_ENV not found in .env file")
+            print("❌ PRODUCTION_ENV or PRODUCTION_DATABASE_URL not found in .env file")
             return
         
         # Create backups directory

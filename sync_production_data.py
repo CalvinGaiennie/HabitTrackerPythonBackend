@@ -33,8 +33,9 @@ def sync_production_data():
         load_dotenv('.env')
         # Try PRODUCTION_ENV first, then PRODUCTION_DATABASE_URL
         prod_url = os.getenv('PRODUCTION_ENV') or os.getenv('PRODUCTION_DATABASE_URL')
-        # Use DATABASE_URL from .env (which should be the local DB)
-        local_url = os.getenv('DATABASE_URL')
+        # Use the database that start.sh connects to (calvingaiennie@localhost on default port)
+        # This matches what start.sh uses: postgresql://calvingaiennie@localhost/habittracker
+        local_url = os.getenv('LOCAL_DATABASE_URL') or "postgresql://calvingaiennie@localhost/habittracker"
         
         if not prod_url:
             print("⚠️  PRODUCTION_ENV or PRODUCTION_DATABASE_URL not found in .env file")

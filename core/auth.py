@@ -67,4 +67,3 @@ def decode_password_reset_token(token: str) -> dict:
         raise HTTPException(status_code=401, detail="Reset token has expired")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid reset token")
-

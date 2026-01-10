@@ -188,6 +188,7 @@ CREATE TABLE IF NOT EXISTS food_entry (
     id SERIAL PRIMARY KEY,
     user_id INT REFERENCES users(id) ON DELETE CASCADE,
     food_id INT REFERENCES foods(id) ON DELETE SET NULL,
+    food_name TEXT NOT NULL,
     log_date DATE NOT NULL,
     quantity NUMERIC(6,2) NOT NULL DEFAULT 1, -- multiplier of serving size
     calories NUMERIC(8,2),

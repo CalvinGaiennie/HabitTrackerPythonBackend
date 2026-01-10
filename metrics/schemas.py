@@ -8,7 +8,7 @@ class MetricMini(BaseModel):
     initials: Optional[str] = None
     data_type: str
     unit: Optional[str] = None
-    time_type: str
+    time_type: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -28,7 +28,7 @@ class MetricBase(BaseModel):
     modifier_value: Optional[str] = None
     notes_on: bool = False
     active: bool = True
-    time_type: str
+    time_type: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -51,6 +51,7 @@ class MetricUpdate(BaseModel):
     modifier_value: Optional[str] = None
     notes_on: Optional[bool] = None
     active: Optional[bool] = None
+    time_type: Optional[str] = None
 
     model_config = {"from_attributes": True}
 

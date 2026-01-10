@@ -189,9 +189,8 @@ def update_workout(
     # Update fields if provided
     update_data = workout_update.model_dump(exclude_unset=True)
     
-    # Handle exercises JSON conversion
-    if 'exercises' in update_data and update_data['exercises']:
-        update_data['exercises'] = json.dumps([exercise.model_dump() for exercise in update_data['exercises']])
+    # Exercises are already converted to dicts by model_dump()
+    # SQLAlchemy JSON column will automatically serialize Python dicts/lists to JSON
     
     for field, value in update_data.items():
         setattr(workout, field, value)
